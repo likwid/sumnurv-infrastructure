@@ -1,0 +1,50 @@
+---
+- hosts: tag_Name_registry
+  gather_facts: yes
+  sudo: yes
+  remote_user: ubuntu
+  vars:
+    iam_role_name: DockerRegistryS3
+  tasks:
+  
+  - name: Add Docker repository key
+    apt_key:
+      id: A88D21E9
+      url: http://get.docker.io/gpg
+      state: present
+
+  - name: Add Docker repository
+    apt_repository:
+      repo: deb http://get.docker.io/ubuntu docker main
+      update_cache: yes
+      state: present
+
+  - name: Install (or update) docker.io
+    apt:
+      name: docker.io
+      state: latest
+      update_cache: yes
+
+  - name: Install Docker
+    apt: 
+      pkg: lxc-docker
+    notify:
+    - start docker
+
+  - name: Get access details from metadata service
+    command: curl http://169.254.169.254/latest/meta-data/iam/security-credentials/{{ iam_role_name }}
+    register: meta_data_result
+
+  - name: Set meta_data fact
+    set_fact:
+      iam_meta_data: "{{ meta_data_result.stdout | from_json }}"
+    when: meta_data_result.rc == 0
+  
+  - name: Launch docker registry
+    command: docker run -e SETTINGS_FLAVOR=s3 -e AWS_BUCKET=registry.sumnurv.com -e STORAGE_PATH=/srv/docker -e AWS_KEY={{ iam_meta_data.AccessKeyId }} -e AWS_SECRET={{ iam_meta_data.SecretAccessKey }} -p 5000:5000 registry
+
+  handlers:
+  - name: start docker
+    service:
+      name: docker
+      state: started

@@ -1,0 +1,6 @@
+openresty_version: 1.7.7.1
+pcre: pcre-8.36
+zlib: zlib-1.2.8
+openssl: openssl-1.0.1k
+rebuild: no
+packages_s3_bucket: sumnurv-common-packages

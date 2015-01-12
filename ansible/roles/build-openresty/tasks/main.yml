@@ -1,0 +1,143 @@
+- name: Install pip
+  apt:
+    pkg: python-pip
+
+- name: Install boto
+  pip:
+    name: boto
+
+- name: Delete build success file if rebuild
+  file:
+    path: /home/{{ ansible_ssh_user }}/.{{ openresty_version }}
+    state: absent
+  when: rebuild == True
+
+- name: Delete build success file if rebuild
+  file:
+    path: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    state: absent
+  when: rebuild == True
+
+- name: Register successful build variable
+  stat:
+    path: /tmp/openresty/var/lib/nginx
+  register: openresty_built
+
+- name: Download openresty tarball
+  get_url:
+    url: http://openresty.org/download/ngx_openresty-{{ openresty_version }}.tar.gz
+    dest: /tmp
+  when: openresty_built.stat.exists == False
+
+- name: Unarchive openresty
+  unarchive:
+    src: /tmp/ngx_openresty-{{ openresty_version }}.tar.gz
+    dest: /tmp
+    copy: no
+    creates: /tmp/ngx_openresty-{{ openresty_version }}
+  when: openresty_built.stat.exists == False
+
+- name: Create openresty build script
+  template:
+    src: build_openresty.sh.j2
+    dest: /tmp/build_openresty.sh
+    mode: 0755
+    owner: root
+    group: root
+  when: openresty_built.stat.exists == False
+
+- name: Build openresty
+  shell: /tmp/build_openresty.sh
+  args:
+    chdir: /tmp/ngx_openresty-{{ openresty_version }}
+  when: openresty_built.stat.exists == False
+
+- name: Add nginx init.d folder to staging
+  file:
+    path: /tmp/openresty/etc/init.d
+    mode: 0755
+    owner: root
+    group: root
+    state: directory
+
+- name: Add nginx init file
+  copy:
+    src: nginx.init
+    dest: /tmp/openresty/etc/init.d/nginx
+    mode: 0555
+    owner: root
+    group: root
+
+- name: Add nginx directories
+  file:
+    path: /tmp/openresty/etc/nginx/{{ item }}
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  with_items:
+  - conf.d
+  - sites-available
+  - sites-enabled
+
+- name: Add default site
+  copy:
+    src: site.default
+    dest: /tmp/openresty/etc/nginx/sites-available/default
+    mode: 0555
+    owner: root
+    group: root
+
+- name: Install ruby-dev
+  apt:
+    pkg: ruby-dev
+
+- name: Install fpm
+  gem:
+    name: fpm
+
+- name: Register packaged variable
+  stat:
+    path: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+  register: already_packaged
+
+- name: Package openresty using fpm
+  shell: >
+    /root/.gem/ruby/1.9.1/bin/fpm 
+    -s dir
+    -t deb
+    -n openresty
+    -v {{ openresty_version }} 
+    --iteration 1 
+    -C /tmp/openresty
+    -p /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    --description "OpenResty {{ openresty_version }}"
+    --config-files /etc/nginx/fastcgi.conf.default 
+    --config-files /etc/nginx/win-utf 
+    --config-files /etc/nginx/fastcgi_params 
+    --config-files /etc/nginx/nginx.conf 
+    --config-files /etc/nginx/koi-win 
+    --config-files /etc/nginx/nginx.conf.default 
+    --config-files /etc/nginx/mime.types.default 
+    --config-files /etc/nginx/koi-utf 
+    --config-files /etc/nginx/uwsgi_params 
+    --config-files /etc/nginx/uwsgi_params.default 
+    --config-files /etc/nginx/sites-available/default 
+    --config-files /etc/nginx/fastcgi_params.default 
+    --config-files /etc/nginx/mime.types 
+    --config-files /etc/nginx/scgi_params.default 
+    --config-files /etc/nginx/scgi_params 
+    --config-files /etc/nginx/fastcgi.conf 
+    etc 
+    usr 
+    var
+  when: already_packaged.stat.exists == False or rebuild == True
+
+- name: Upload to s3
+  s3:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    bucket: "{{ packages_s3_bucket }}"
+    object: openresty-{{ openresty_version }}-1_amd64.deb
+    src: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    mode: put

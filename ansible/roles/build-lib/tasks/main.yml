@@ -1,0 +1,62 @@
+- name: Install packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+  - build-essential
+
+- name: Register successful build files (if any)
+  stat:
+    path: /home/{{ ansible_ssh_user }}/.{{ common_name }}
+  register: already_built
+
+- name: Register downloaded tarballs
+  stat:
+    path: /tmp/{{ common_name}}.tar.gz
+  register: already_downloaded
+
+- name: Download tarballs
+  get_url:
+    url: "{{ pkg_tarball_uri }}"
+    dest: /tmp
+  when: already_downloaded.stat.exists == False
+
+- name: Unarchive tarballs
+  unarchive:
+    src: /tmp/{{ common_name }}.tar.gz
+    dest: /tmp/
+    copy: no
+    creates: /tmp/{{ common_name }}
+  when: already_built.stat.exists == False 
+
+- name: Configure tarballs
+  command: ./{{ cfg_cmd }} --prefix={{ prefix_path }}
+  args:
+    chdir: /tmp/{{ common_name }}
+  when: already_built.stat.exists == False and should_compile == True
+
+- name: Make clean tarballs
+  command: make clean
+  args:
+    chdir: /tmp/{{ common_name }}
+  when: already_built.stat.exists == False and should_compile == True
+
+- name: Make tarballs
+  command: make
+  args:
+    chdir: /tmp/{{ common_name }}
+  when: already_built.stat.exists == False and should_compile == True
+
+- name: Make install tarballs
+  command: make install
+  args:
+    chdir: /tmp/{{ common_name }}
+  when: already_built.stat.exists == False and should_compile == True
+
+- name: Create build log files for successful compilations
+  file:
+    path: /home/{{ ansible_ssh_user }}/.{{ common_name }}
+    state: touch
+  with_items: tarballs
+  when: already_built.stat.exists == False and should_compile == True

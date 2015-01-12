@@ -1,0 +1,191 @@
+---
+- hosts: localhost
+  gather_facts: no
+  sudo: no
+
+  vars:
+    clean_up: false
+    keypair_name: likwid
+    nat_ami_id: ami-184dc970
+    nat_instance_type: m3.medium
+    instance_type: m3.medium
+    region: us-east-1
+    ubuntu_ami_id: ami-9eaa1cf6
+    vpc_name: Example VPC
+    vpc_cidr: 172.22.0.0/16
+    vpc_private_subnet: 172.22.100.0/24
+    vpc_public_subnet: 172.22.10.0/24
+
+  tasks:
+  - name: Create Example VPC defaults
+    ec2_vpc:
+      state: present
+      cidr_block: "{{ vpc_cidr }}"
+      resource_tags: { "Name": "{{ vpc_name }}" }
+      subnets:
+      - resource_tags: { "Name": "Public #1" }
+        cidr: 172.22.10.0/24
+        az: "{{ region }}c"
+      - resource_tags: { "Name": "Public #2" }
+        cidr: 172.22.11.0/24
+        az: "{{ region }}d"
+      - resource_tags: { "Name": "Private #1" }
+        cidr: 172.22.100.0/24
+        az: "{{ region }}c"
+      - resource_tags: { "Name": "Private #2" }
+        cidr: 172.22.101.0/24
+        az: "{{ region }}d"
+      region: "{{ region }}"
+    register: vpc
+
+  - name: Write out a temporary file for mapping subnet to id
+    template: 
+      src: templates/subnet_id.j2
+      dest: /tmp/subnet_id
+
+  - name: Get the contents of subnet mapping file and set it as a fact
+    set_fact:
+      subnet_maps: "{{ lookup('file', '/tmp/subnet_id') }}"
+
+  - name: Create the NAT security group
+    ec2_group:
+      name: NAT
+      description: NAT Security Rules
+      vpc_id: "{{ vpc.vpc_id }}"
+      region: "{{ region }}"
+      rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+      - proto: all
+        group_name: NAT 
+      rules_egress:
+      - proto: all
+        cidr_ip: "{{ vpc_cidr }}"
+    register: ec2_sg
+
+  - name: Create the NAT Instance
+    ec2:
+      assign_public_ip: yes
+      region: "{{ region }}"
+      keypair: "{{ keypair_name }}" 
+      instance_type: "{{ instance_type }}"
+      instance_tags: { "Name": "NAT" }
+      source_dest_check: no
+      image: "{{ ubuntu_ami_id }}"
+      group: NAT
+      vpc_subnet_id: "{{ item['id'] }}"
+      wait: yes
+      exact_count: 1
+      count_tag:
+        Name: NAT
+    register: ec2
+    with_items: vpc.subnets
+    when: item['cidr'] == vpc_public_subnet
+
+  - name: Debug EC2
+    debug:
+      msg: "{{ ec2.results }}"
+
+  - name: Set the fact for NAT Instance variable
+    set_fact:
+      nat_instance: "{{ item.tagged_instances[0].id }}"
+      nat_public_ip: "{{ item.tagged_instances[0].public_ip }}"
+      nat_public_dns: "{{ item.tagged_instances[0].public_dns_name }}"
+    with_items: ec2.results
+    when: item.tagged_instances is defined
+
+  - name: Add new instance to host group
+    add_host: 
+      hostname: "{{ nat_public_ip }}"
+      groupname: launched_nat
+
+  - name: Add private route table
+    ec2_vpc:
+      vpc_id: "{{ vpc.vpc_id }}"
+      state: present
+      resource_tags: { "Name": "Example VPC" }
+      region: "{{ region }}"
+      internet_gateway: yes
+      route_tables:
+      - subnets:
+          - 172.22.100.0/24
+          - 172.22.101.0/24
+        routes:
+          - dest: 0.0.0.0/0
+            gw: "{{ nat_instance }}"
+      - subnets:
+          - 172.22.10.0/24
+          - 172.22.11.0/24
+        routes:
+          - dest: 0.0.0.0/0
+            gw: igw
+
+  - name: Create Private Instance
+    ec2:
+      region: "{{ region }}"
+      keypair: "{{ keypair_name }}"
+      instance_type: "{{ instance_type }}"
+      instance_tags: { "Name": "private" }
+      image: "{{ ubuntu_ami_id }}"
+      group: NAT
+      vpc_subnet_id: "{{ item['id'] }}"
+      wait: yes
+      exact_count: 1
+      count_tag:
+        Name: private
+    register: private
+    with_items: vpc.subnets
+    when: item['cidr'] == vpc_private_subnet
+      
+  - name: Clean up VPC
+    ec2_vpc:
+      vpc_id: "{{ vpc.vpc_id }}"
+      state: absent
+      resource_tags: { "Name": "Example VPC" }
+      region: us-east-1
+    when: clean_up
+
+  - name: Wait for SSH to come up
+    wait_for: 
+      host: "{{ nat_public_dns }}"
+      port: 22
+      delay: 60
+      timeout: 320
+      state: started
+
+- hosts: launched_nat
+  remote_user: ubuntu
+  gather_facts: yes
+  sudo: yes
+  tasks:
+  
+  - name: Install ufw
+    apt:
+      pkg: ufw
+
+  - name: Set ip_forward
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: "1"
+      reload: yes
+
+  - name: Enable & configure ufw
+    ufw:
+      state: enabled
+      policy: allow
+
+  - name: Add NAT rules to ufw
+    lineinfile:
+      dest: /etc/ufw/before.rules
+      insertafter: "^# End required lines"
+      line: "*nat\n:POSTROUTING ACCEPT [0:0]"
+      state: present
+
+  - name: Add more NAT rules to ufw
+    lineinfile:
+      dest: /etc/ufw/before.rules
+      insertbefore: "^# don't delete"
+      line: "# Forward traffic\n-A POSTROUTING -s {{ vpc_cidr }} -o eth0 -j MASQUERADE"
+      state: present

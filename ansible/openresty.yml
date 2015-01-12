@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: yes
+  sudo: yes
+  vars:
+    aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY') }}"
+    aws_secret_key: "{{ lookup('env','AWS_SECRET_KEY') }}"
+  roles:
+  - build-openresty
