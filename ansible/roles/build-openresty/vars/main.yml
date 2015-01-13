@@ -1,6 +1,9 @@
 openresty_version: 1.7.7.1
+luarocks_version: 2.2.0
 pcre: pcre-8.36
 zlib: zlib-1.2.8
 openssl: openssl-1.0.1k
 rebuild: no
+aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY') }}"
+aws_secret_key: "{{ lookup('env','AWS_SECRET_KEY') }}"
 packages_s3_bucket: sumnurv-common-packages

@@ -16,10 +16,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/openresty.yml"
-    #ansible.extra_vars = {
-    #  rebuild: "True"
-    #}
+    ansible.playbook = "ansible/provision.yml"
   end
 
 end

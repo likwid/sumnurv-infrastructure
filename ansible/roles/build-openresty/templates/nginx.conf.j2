@@ -1,0 +1,24 @@
+user www-data www-data;
+worker_processes 4;
+worker_rlimit_nofile 100000;
+pid /var/run/nginx.pid;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  include mime.types;
+  default_type application/octet-stream;
+ 
+  sendfile on;
+  keepalive_timeout 65;
+
+  lua_package_cpath "/usr/local/openresty/lualib/?.so;;";
+
+  ##
+  # Virtual Host Configs
+  ##
+  include /etc/nginx/conf.d/*.conf;
+  include /etc/nginx/sites-enabled/*;
+}

@@ -1,37 +1,45 @@
 ---
 dependencies:
 - role: "build-lib"
-  lib_pkg_name: "pcre"
+  lib_name: "pcre"
   version: "8.36"
-  common_name: "{{ lib_pkg_name }}-{{ version }}"
-  cfg_cmd: "configure"
-  pkg_tarball_uri: "ftp://ftp.csx.cam.ac.uk/pub/software/programming/{{ lib_pkg_name }}/{{ common_name }}.tar.gz"
+  common_name: "{{ lib_name }}-{{ version }}"
+  tarball_uri: "ftp://ftp.csx.cam.ac.uk/pub/software/programming/{{ lib_name }}/{{ common_name }}.tar.gz"
   should_compile: no
+
 - role: "build-lib"
-  lib_pkg_name: "openssl"
+  lib_name: "openssl"
   version: "1.0.1k"
-  common_name: "{{ lib_pkg_name }}-{{ version }}"
-  cfg_cmd: "config"
-  pkg_tarball_uri: "https://www.openssl.org/source/{{ common_name }}.tar.gz"
+  common_name: "{{ lib_name }}-{{ version }}"
+  tarball_uri: "https://www.openssl.org/source/{{ common_name }}.tar.gz"
   should_compile: no
+
 - role: "build-lib"
-  lib_pkg_name: "zlib"
+  lib_name: "zlib"
   version: "1.2.8"
-  common_name: "{{ lib_pkg_name }}-{{ version }}"
-  cfg_cmd: "configure"
-  pkg_tarball_uri: "http://zlib.net/{{ common_name }}.tar.gz"
+  common_name: "{{ lib_name }}-{{ version }}"
+  tarball_uri: "http://zlib.net/{{ common_name }}.tar.gz"
   should_compile: no
+
 - role: "build-lib"
-  lib_pkg_name: "readline"
+  lib_name: "luarocks"
+  version: "2.2.0"
+  common_name: "{{ lib_name }}-{{ version }}"
+  tarball_uri: "http://luarocks.org/releases/{{ common_name }}.tar.gz"
+  should_compile: no
+
+- role: "build-lib"
+  lib_name: "readline"
   version: "6.3"
-  common_name: "{{ lib_pkg_name }}-{{ version }}"
-  cfg_cmd: "configure"
-  pkg_tarball_uri: "http://ftp.gnu.org/gnu/{{ lib_pkg_name }}/{{ common_name }}.tar.gz"
+  common_name: "{{ lib_name }}-{{ version }}"
+  configure_command: "configure"
+  tarball_uri: "http://ftp.gnu.org/gnu/{{ lib_name }}/{{ common_name }}.tar.gz"
   should_compile: yes
+
 - role: "build-lib"
-  lib_pkg_name: "GeoIP"
+  lib_name: "GeoIP"
   version: "1.6.3"
-  common_name: "{{ lib_pkg_name }}-{{ version }}"
-  cfg_cmd: "configure"
-  pkg_tarball_uri: "https://github.com/maxmind/geoip-api-c/releases/download/v{{ version }}/{{ common_name }}.tar.gz"
+  common_name: "{{ lib_name }}-{{ version }}"
+  configure_command: "configure"
+  tarball_uri: "https://github.com/maxmind/geoip-api-c/releases/download/v{{ version }}/{{ common_name }}.tar.gz"
   should_compile: yes

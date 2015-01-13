@@ -16,47 +16,40 @@
     path: /tmp/{{ common_name}}.tar.gz
   register: already_downloaded
 
-- name: Download tarballs
+- name: "Download {{ common_name }}"
   get_url:
-    url: "{{ pkg_tarball_uri }}"
+    url: "{{ tarball_uri }}"
     dest: /tmp
   when: already_downloaded.stat.exists == False
 
-- name: Unarchive tarballs
+- name: "Unarchive {{ common_name }}"
   unarchive:
     src: /tmp/{{ common_name }}.tar.gz
     dest: /tmp/
     copy: no
     creates: /tmp/{{ common_name }}
-  when: already_built.stat.exists == False 
+  when: already_built.stat.exists == False
 
-- name: Configure tarballs
-  command: ./{{ cfg_cmd }} --prefix={{ prefix_path }}
+- name: "Configure {{ common_name }}"
+  command: ./{{ configure_command }} --prefix={{ prefix_path }}
   args:
     chdir: /tmp/{{ common_name }}
   when: already_built.stat.exists == False and should_compile == True
 
-- name: Make clean tarballs
-  command: make clean
-  args:
-    chdir: /tmp/{{ common_name }}
-  when: already_built.stat.exists == False and should_compile == True
-
-- name: Make tarballs
+- name: "Make {{ common_name }}"
   command: make
   args:
     chdir: /tmp/{{ common_name }}
   when: already_built.stat.exists == False and should_compile == True
 
-- name: Make install tarballs
+- name: "Make install {{ common_name }}"
   command: make install
   args:
     chdir: /tmp/{{ common_name }}
   when: already_built.stat.exists == False and should_compile == True
 
-- name: Create build log files for successful compilations
+- name: "Log successfull build for {{ common_name }}"
   file:
     path: /home/{{ ansible_ssh_user }}/.{{ common_name }}
     state: touch
-  with_items: tarballs
   when: already_built.stat.exists == False and should_compile == True

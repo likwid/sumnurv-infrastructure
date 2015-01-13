@@ -1,2 +1,4 @@
 ---
 prefix_path: /usr/local
+should_compile: no
+configure_command: ./configure

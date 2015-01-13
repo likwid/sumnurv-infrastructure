@@ -1,6 +1,11 @@
-- name: Install pip
+- name: Install pre-reqs
   apt:
-    pkg: python-pip
+    cache_valid_time: 3600
+    pkg: "{{ item }}"
+    update_cache: yes
+  with_items:
+  - python-pip
+  - git
 
 - name: Install boto
   pip:
@@ -8,20 +13,19 @@
 
 - name: Delete build success file if rebuild
   file:
-    path: /home/{{ ansible_ssh_user }}/.{{ openresty_version }}
-    state: absent
-  when: rebuild == True
-
-- name: Delete build success file if rebuild
-  file:
     path: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
     state: absent
   when: rebuild == True
 
-- name: Register successful build variable
+- name: Register successful openresty build
   stat:
     path: /tmp/openresty/var/lib/nginx
   register: openresty_built
+
+- name: Register successful luarocks build
+  stat:
+    path: /tmp/openresty/usr/local/openresty/bin/luarocks
+  register: luarocks_built 
 
 - name: Download openresty tarball
   get_url:
@@ -52,6 +56,33 @@
     chdir: /tmp/ngx_openresty-{{ openresty_version }}
   when: openresty_built.stat.exists == False
 
+- name: Link openresty directory for adding software
+  file:
+    src: /tmp/openresty/usr/local/openresty/
+    dest: /usr/local/openresty
+    mode: 0755
+    owner: root
+    group: root
+    state: link
+  when: openresty_built.stat.exists == False and luarocks_built.stat.exists == False
+
+- name: Configure luarocks
+  shell: >
+    ./configure
+    --prefix=/usr/local/openresty/luajit
+    --with-lua=/usr/local/openresty/luajit/
+    --lua-suffix=jit-2.1.0-alpha
+    --with-lua-include=/usr/local/openresty/luajit/include/luajit-2.1
+  args:
+    chdir: /tmp/luarocks-{{ luarocks_version }}
+  when: openresty_built.stat.exists == False and luarocks_built.stat.exists == False
+
+- name: Make and Make Install luarocks
+  shell: make && make install
+  args:
+    chdir: /tmp/luarocks-{{ luarocks_version }}
+  when: openresty_built.stat.exists == False and luarocks_built.stat.exists == False
+
 - name: Add nginx init.d folder to staging
   file:
     path: /tmp/openresty/etc/init.d
@@ -59,6 +90,7 @@
     owner: root
     group: root
     state: directory
+  when: openresty_built.stat.exists == False
 
 - name: Add nginx init file
   copy:
@@ -67,6 +99,7 @@
     mode: 0555
     owner: root
     group: root
+  when: openresty_built.stat.exists == False
 
 - name: Add nginx directories
   file:
@@ -79,14 +112,25 @@
   - conf.d
   - sites-available
   - sites-enabled
+  when: openresty_built.stat.exists == False
+
+- name: Add default nginx.conf
+  template:
+    src: nginx.conf.j2
+    dest: /tmp/openresty/etc/nginx/nginx.conf
+    mode: 0644
+    owner: root
+    group: root
+  when: openresty_built.stat.exists == False
 
 - name: Add default site
   copy:
     src: site.default
-    dest: /tmp/openresty/etc/nginx/sites-available/default
-    mode: 0555
+    dest: /tmp/openresty/etc/nginx/sites-enabled/default
+    mode: 0644
     owner: root
     group: root
+  when: openresty_built.stat.exists == False
 
 - name: Install ruby-dev
   apt:
@@ -98,7 +142,7 @@
 
 - name: Register packaged variable
   stat:
-    path: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    path: /vagrant/openresty-{{ openresty_version }}-1_amd64.deb
   register: already_packaged
 
 - name: Package openresty using fpm
@@ -110,7 +154,7 @@
     -v {{ openresty_version }} 
     --iteration 1 
     -C /tmp/openresty
-    -p /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    -p /vagrant/openresty-{{ openresty_version }}-1_amd64.deb
     --description "OpenResty {{ openresty_version }}"
     --config-files /etc/nginx/fastcgi.conf.default 
     --config-files /etc/nginx/win-utf 
@@ -122,7 +166,7 @@
     --config-files /etc/nginx/koi-utf 
     --config-files /etc/nginx/uwsgi_params 
     --config-files /etc/nginx/uwsgi_params.default 
-    --config-files /etc/nginx/sites-available/default 
+    --config-files /etc/nginx/sites-enabled/default 
     --config-files /etc/nginx/fastcgi_params.default 
     --config-files /etc/nginx/mime.types 
     --config-files /etc/nginx/scgi_params.default 
@@ -133,11 +177,16 @@
     var
   when: already_packaged.stat.exists == False or rebuild == True
 
+- name: Unlink destdir
+  file:
+    path: /usr/local/openresty
+    state: absent
+
 - name: Upload to s3
   s3:
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
     bucket: "{{ packages_s3_bucket }}"
     object: openresty-{{ openresty_version }}-1_amd64.deb
-    src: /tmp/openresty-{{ openresty_version }}-1_amd64.deb
+    src: /vagrant/openresty-{{ openresty_version }}-1_amd64.deb
     mode: put
