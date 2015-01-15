@@ -1,0 +1,10 @@
+region: "us-east-1"
+vpc_cidr: 172.22.0.0/16
+private_subnet_a: 172.22.100.0/24
+private_subnet_b: 172.22.101.0/24
+public_subnet_a: 172.22.10.0/24
+public_subnet_b: 172.22.11.0/24
+az_a: "{{ region }}e"
+az_b: "{{ region }}d"
+nat_private_ip_a: 172.22.10.11
+nat_private_ip_b: 172.22.11.11

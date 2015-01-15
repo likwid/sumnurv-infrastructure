@@ -1,0 +1,189 @@
+---
+- name: Check for existing VPC
+  command: >
+    aws ec2 describe-vpcs 
+    --region {{ region }} 
+    --filters "Name=cidr,Values={{ vpc_cidr }}"
+    --query "Vpcs[0].VpcId"
+  register: vpc_command_result
+
+- name: VPC present fact
+  set_fact:
+    vpc_exists: True
+  when: vpc_command_result.stdout != ""
+
+- name: VPC not present fact
+  set_fact:
+    vpc_exists: False
+  when: vpc_command_result.stdout == ""
+
+- name: Create VPC defaults
+  ec2_vpc:
+    state: present
+    cidr_block: "{{ vpc_cidr }}"
+    resource_tags: { "Name": "{{ vpc_name }}" }
+    region: "{{ region }}"
+    subnets:
+    - resource_tags: { "Name": "Public #1" }
+      cidr: "{{ public_subnet_a }}"
+      az: "{{ az_a }}"
+    - resource_tags: { "Name": "Public #2" }
+      cidr: "{{ public_subnet_b }}"
+      az: "{{ az_b }}"
+    - resource_tags: { "Name": "Private #1" }
+      cidr: "{{ private_subnet_a }}"
+      az: "{{ az_a }}"
+    - resource_tags: { "Name": "Private #2" }
+      cidr: "{{ private_subnet_b }}"
+      az: "{{ az_b }}"
+  register: vpc
+  when: vpc_exists == False
+
+- name: Write out a temporary file for mapping subnet to id
+  template:
+    src: subnet_id.j2
+    dest: /tmp/subnet_id
+  when: vpc_exists == False
+
+- name: Get the contents of subnet mapping
+  set_fact:
+    subnet_maps: "{{ lookup('file', '/tmp/subnet_id') }}"
+
+- name: Create the NAT Security Group
+  ec2_group:
+    name: NAT
+    description: NAT security rules
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ region }}"
+    rules:
+    - proto: tcp
+      from_port: 22
+      to_port: 22
+      cidr_ip: 0.0.0.0/0
+    - proto: all
+      group_name: NAT
+    - proto: all
+      cidr_ip: "{{ vpc_cidr }}"
+    rules_egress:
+    - proto: all
+      cidr_ip: 0.0.0.0/0
+  register: ec2_sg
+  when: vpc_exists == False
+
+- name: Create NAT A
+  ec2:
+    assign_public_ip: yes
+    region: "{{ region }}"
+    keypair: "{{ keypair_name }}"
+    instance_type: "{{ nat_instance_type }}"
+    instance_tags: { "Name": "NAT A" }
+    source_dest_check: no
+    image: "{{ nat_ami_id }}"
+    instance_profile_name: nat-monitor
+    private_ip: "{{ nat_private_ip_a }}"
+    group: NAT
+    vpc_subnet_id: "{{ item['id'] }}"
+    wait: yes
+    exact_count: 1
+    count_tag:
+      Name: NAT1
+  register: nat1
+  with_items: vpc.subnets
+  when: vpc.subnets is defined and item['cidr'] == public_subnet_a
+
+- name: Create NAT B
+  ec2:
+    assign_public_ip: yes
+    region: "{{ region }}"
+    keypair: "{{ keypair_name }}"
+    instance_type: "{{ nat_instance_type }}"
+    instance_tags: { "Name": "NAT B" }
+    source_dest_check: no
+    image: "{{ nat_ami_id }}"
+    instance_profile_name: nat-monitor
+    private_ip: "{{ nat_private_ip_b }}"
+    group: NAT
+    vpc_subnet_id: "{{ item['id'] }}"
+    wait: yes
+    exact_count: 1
+    count_tag:
+      Name: NAT2
+  register: nat2
+  with_items: vpc.subnets
+  when: vpc.subnets is defined and item['cidr'] == public_subnet_b
+
+- name: Set NAT 1 facts
+  set_fact:
+    nat_a_id: "{{ item.tagged_instances[0].id }}" 
+    nat_a_public_ip: "{{ item.tagged_instances[0].public_ip }}"
+    nat_a_public_dns: "{{ item.tagged_instances[0].public_dns_name }}"
+  with_items: nat1.results
+  when: item.tagged_instances is defined
+
+- name: Set NAT 2 facts
+  set_fact:
+    nat_b_id: "{{ item.tagged_instances[0].id }}" 
+    nat_b_public_ip: "{{ item.tagged_instances[0].public_ip }}"
+    nat_b_public_dns: "{{ item.tagged_instances[0].public_dns_name }}"
+  with_items: nat2.results
+  when: item.tagged_instances is defined
+
+- name: Add NAT A to NAT hosts
+  add_host: 
+    name: "{{ item.tagged_instances[0].public_dns_name }}"
+    id: "{{ item.tagged_instances[0].id }}"
+    private_ip: "{{ item.tagged_instances[0].private_ip }}"
+    public_ip: "{{ item.tagged_instances[0].public_ip }}"
+    ansible_ssh_user: ec2-user
+    groups: security_group_NAT
+  with_items: nat1.results
+  when: item.tagged_instances is defined
+
+- name: Add NAT B to NAT hosts
+  add_host: 
+    name: "{{ item.tagged_instances[0].public_dns_name }}"
+    id: "{{ item.tagged_instances[0].id }}"
+    private_ip: "{{ item.tagged_instances[0].private_ip }}"
+    public_ip: "{{ item.tagged_instances[0].public_ip }}"
+    ansible_ssh_user: ec2-user
+    groups: security_group_NAT
+  with_items: nat2.results
+  when: item.tagged_instances is defined
+
+- name: Add private route table
+  ec2_vpc:
+    vpc_id: "{{ vpc.vpc_id }}"
+    state: present
+    resource_tags: { "Name": "{{ vpc_name }}" }
+    region: "{{ region }}"
+    internet_gateway: yes
+    route_tables:
+    - subnets:
+      - "{{ private_subnet_a }}"
+      routes:
+      - dest: 0.0.0.0/0
+        gw: "{{ nat_a_id }}"
+    - subnets:
+      - "{{ private_subnet_b }}"
+      routes:
+      - dest: 0.0.0.0/0
+        gw: "{{ nat_b_id }}"
+    - subnets:
+      - "{{ public_subnet_a }}"
+      - "{{ public_subnet_b }}"
+      routes:
+      - dest: 0.0.0.0/0
+        gw: igw
+  when: vpc_exists == False
+
+- name: Wait for SSH to come up
+  wait_for:
+    host: "{{ item }}"
+    port: 22
+    delay: 60
+    timeout: 320
+    state: started
+  with_items:
+  - "{{ nat_a_public_dns }}"
+  - "{{ nat_b_public_dns }}"
+  when: vpc_exists == False 

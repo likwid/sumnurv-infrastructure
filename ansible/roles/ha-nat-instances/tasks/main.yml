@@ -1,0 +1,118 @@
+- name: Get NAT A details
+  command: >
+    aws ec2 describe-instances --region {{ region }} --output json
+    --filters "Name=tag:Name,Values=NAT A" "Name=instance-state-name,Values=running"
+    --query "Reservations[0].Instances[0].{id:InstanceId}"
+  register: nat_a_details
+
+- name: Get NAT B details
+  command: >
+    aws ec2 describe-instances --region {{ region }} --output json
+    --filters "Name=tag:Name,Values=NAT B" "Name=instance-state-name,Values=running"
+    --query "Reservations[0].Instances[0].{id:InstanceId}"
+  register: nat_b_details
+
+- name: Set NAT A facts
+  set_fact:
+    nat_a: "{{ nat_a_details.stdout | from_json }}"
+
+- name: Set NAT B facts
+  set_fact:
+    nat_b: "{{ nat_b_details.stdout | from_json }}"
+
+- name: Get Private Subnet A details
+  command: >
+    aws ec2 describe-subnets --region {{ region }} --output json
+    --filters "Name=cidrBlock,Values={{ private_subnet_a }}"
+    --query "Subnets[0].SubnetId"
+  register: private_subnet_a_details
+
+- name: Get Private Subnet B details
+  command: >
+    aws ec2 describe-subnets --region {{ region }} --output json
+    --filters "Name=cidrBlock,Values={{ private_subnet_b }}"
+    --query "Subnets[0].SubnetId"
+  register: private_subnet_b_details
+
+- name: Set Private Subnet A facts
+  set_fact:
+    private_a_subnet_id: "{{ private_subnet_a_details.stdout }}"
+
+- name: Set Private Subnet B facts
+  set_fact:
+    private_b_subnet_id: "{{ private_subnet_b_details.stdout }}"
+
+- name: Get RouteTable A
+  command: >
+    aws ec2 describe-route-tables --region {{ region }} --output json
+    --filters "Name=association.subnet-id,Values={{ private_a_subnet_id }}"
+    --query "RouteTables[0].RouteTableId"
+  register: private_a_rtb_details
+
+- name: Get RouteTable B
+  command: >
+    aws ec2 describe-route-tables --region {{ region }} --output json
+    --filters "Name=association.subnet-id,Values={{ private_b_subnet_id }}"
+    --query "RouteTables[0].RouteTableId"
+  register: private_b_rtb_details
+
+- name: Set Route A facts
+  set_fact:
+    private_a_rtb_id: "{{ private_a_rtb_details.stdout }}"
+
+- name: Set Route B facts
+  set_fact:
+    private_b_rtb_id: "{{ private_b_rtb_details.stdout }}"
+
+- name: Update yum
+  yum:
+    name: aws*
+    state: latest
+
+- name: Create /etc/sysctl.d
+  file:
+    path: /etc/sysctl.d
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Update sysctl for NAT
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/nat.conf
+    reload: yes
+  with_items:
+   - name: net.ipv4.ip_forward
+     value: 1
+   - name: net.ipv4.conf.eth0.send_redirects
+     value: 0
+
+- name: Set IPTables up
+  shell: >
+    /sbin/iptables -t nat -A POSTROUTING -o eth0 -s 0.0.0.0/0 -j MASQUERADE &&
+    /sbin/iptables-save > /etc/sysconfig/iptables
+
+- name: Deploy nat monitor script to A
+  template:
+    src: nat_a_monitor.sh.j2
+    dest: /root/nat-monitor.sh
+    mode: 0755
+    owner: root
+    group: root
+  when: ec2_id == nat_a.id
+
+- name: Deploy nat monitor script to B
+  template:
+    src: nat_b_monitor.sh.j2
+    dest: /root/nat-monitor.sh
+    mode: 0755
+    owner: root
+    group: root
+  when: ec2_id == nat_b.id
+
+- name: Add nat monitor script to cron at reboot
+  cron:
+    name: "NAT Monitor"
+    special_time: reboot
+    job: /root/nat-monitor.sh
