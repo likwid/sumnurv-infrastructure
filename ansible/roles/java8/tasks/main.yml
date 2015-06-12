@@ -1,0 +1,24 @@
+---
+- name: Add openjdk ppa
+  apt_repository:
+    repo: "{{ item }}"
+    update_cache: yes
+    validate_certs: no
+  sudo: yes
+  with_items:
+  - ppa:openjdk-r/ppa
+
+- name: Install java 8 and dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  sudo: yes
+  with_items:
+  - openjdk-8-jdk
+  - build-essential
+  - bzip2
+  - unzip
+  - libhawtjni-runtime-java
+  - libjansi-java
+  - libjansi-native-java

@@ -1,0 +1,16 @@
+---
+- name: Check for leiningen download
+  stat:
+    path: /usr/local/bin/lein
+  register: lein_downloaded
+  sudo: yes
+
+- name: Download leiningen
+  get_url:
+    url: "{{ lein_download_location }}"
+    dest: /usr/local/bin/lein
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
+  when: not lein_downloaded.stat.exists

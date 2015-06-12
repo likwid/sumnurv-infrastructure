@@ -1,0 +1,41 @@
+---
+- name: Add Docker repository key
+  apt_key:
+    id: A88D21E9
+    url: http://get.docker.io/gpg
+    state: present
+  sudo: yes
+
+- name: Add Docker repository
+  apt_repository:
+    repo: deb http://get.docker.io/ubuntu docker main
+    update_cache: yes
+    state: present
+  sudo: yes
+
+- name: Install python-setuptools for easy_install and pip
+  apt:
+    pkg: python-setuptools
+  sudo: yes
+
+- name: Install pip
+  easy_install:
+    name: pip
+  sudo: yes
+
+- name: Install docker-py for managing docker via ansible
+  pip:
+    name: docker-py
+  sudo: yes
+
+- name: Install (or update) docker.io
+  apt:
+    name: docker.io
+    state: latest
+    update_cache: yes
+  sudo: yes
+
+- name: Install lxc-docker
+  apt:
+    pkg: lxc-docker
+  sudo: yes

@@ -1,0 +1,2 @@
+deb https://packagecloud.io/basho/riak/ubuntu/ trusty main
+deb-src https://packagecloud.io/basho/riak/ubuntu/ trusty main

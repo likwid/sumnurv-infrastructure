@@ -1,0 +1,13 @@
+---
+- name: restart jenkins
+  command: java -jar {{ jenkins.cli_dest }} -s http://localhost:8080 safe-restart
+
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: reload nginx
+  service:
+    name: nginx
+    state: reloaded

@@ -1,0 +1,34 @@
+---
+- name: Check for sbt download
+  stat:
+    path: /tmp/sbt-0.13.8.tgz
+  register: sbt_downloaded
+
+- name: Check for unarchived sbt
+  stat:
+    path: /tmp/sbt
+  register: sbt_unarchived
+
+- name: Download sbt
+  get_url:
+    url: "{{ sbt_download_location  }}"
+    dest: /tmp
+    mode: 0755
+  when: not sbt_downloaded.stat.exists
+
+- name: Unarchive sbt
+  unarchive:
+    copy: no
+    src: /tmp/sbt-{{ sbt_version }}.tgz
+    dest: /tmp
+  when: not sbt_unarchived.stat.exists
+
+- name: Install sbt and dependencies
+  command: mv /tmp/sbt/bin/{{ item }} /usr/local/bin
+  args:
+    creates: /usr/local/bin/{{ item }}
+  sudo: yes
+  with_items:
+  - sbt
+  - sbt-launch.jar
+  - sbt-launch-lib.bash

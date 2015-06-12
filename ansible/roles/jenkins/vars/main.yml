@@ -1,0 +1,27 @@
+jenkins_pass: password
+jenkins_dest: /opt/jenkins
+jenkins:
+  deb:
+    repo: 'deb http://pkg.jenkins-ci.org/debian binary/'
+    key: 'http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key'
+    dependencies:
+      - openjdk-7-jre
+      - openjdk-7-jdk
+      - git
+      - curl
+      - python-passlib
+      - nginx
+      - jenkins
+      - npm
+  cli_dest: '{{ jenkins_dest }}/jenkins-cli.jar'
+  updates_dest: '{{ jenkins_dest }}/updates_jenkins.json'
+  plugins:
+    - git
+    - git-client
+    - github-api
+    - github-oauth
+    - simple-theme-plugin
+    - jquery
+    - google-login
+    - role-strategy
+    - delivery-pipeline-plugin

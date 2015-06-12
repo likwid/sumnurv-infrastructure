@@ -1,0 +1,6 @@
+---
+- name: Add the Zavala Systems developers
+  authorized_key:
+    user: ubuntu
+    key: https://github.com/{{ item }}.keys
+  with_items: zs_developers

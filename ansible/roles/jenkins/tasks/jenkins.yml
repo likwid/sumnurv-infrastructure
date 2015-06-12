@@ -1,0 +1,84 @@
+---
+- name: Add apt-key for jenkins
+  apt_key:
+    url: http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key
+    state: present
+
+- name: Add jenkins repository to apt_key
+  apt_repository:
+    repo: deb http://pkg.jenkins-ci.org/debian binary/
+    state: present
+
+- name: Install dependencies
+  apt:
+    update_cache: yes
+    name: "{{ item }}"
+    state: installed
+  with_items: jenkins.deb.dependencies
+
+- name: Start Jenkins
+  service:
+    name: jenkins
+    state: started
+
+- name: "{{ startup_delay_s | default(30) }}s delay while starting Jenkins"
+  wait_for:
+    port: 8080
+    delay: "{{ startup_delay_s | default(30) }}"
+
+- name: "Create Jenkins CLI destination directory: {{ jenkins.dest }}"
+  file:
+    path: "{{ jenkins_dest }}"
+    state: directory
+
+- name: Get Jenkins updates
+  get_url:
+    url: http://updates.jenkins-ci.org/update-center.json 
+    dest: "{{ jenkins.updates_dest }}"
+    thirsty: yes
+    mode: 0440
+  register: jenkins_updates
+
+- name: Get Jenkins CLI
+  get_url:
+    url: http://localhost:8080/jnlpJars/jenkins-cli.jar
+    dest: "{{ jenkins.cli_dest }}"
+    mode: 0440
+
+- name: Deploy doony theme
+  copy:
+    src: org.codefirst.SimpleThemeDecorator.xml
+    dest: /var/lib/jenkins/org.codefirst.SimpleThemeDecorator.xml
+
+- name: Update-center Jenkins
+  shell: "cat {{ jenkins.updates_dest }} | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:8080/updateCenter/byId/default/postBack"
+  when: jenkins_updates.changed
+  notify:
+  - restart jenkins
+
+- name: Install/update plugins
+  command: java -jar {{ jenkins.cli_dest }} -s http://localhost:8080 install-plugin {{ item }}
+  with_items: jenkins.plugins
+  notify:
+  - restart jenkins
+
+- name: Add jenkins to docker group
+  user:
+    name: jenkins
+    groups: docker
+  notify:
+  - restart jenkins
+
+- name: Link nodejs to node
+  file:
+    src: /usr/bin/nodejs
+    dest: /usr/local/bin/node
+    owner: root
+    group: root
+    mode: 0755
+    state: link
+
+- name: Add grunt-cli
+  npm:
+    name: grunt-cli
+    global: yes

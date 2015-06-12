@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<org.codefirst.SimpleThemeDecorator plugin="simple-theme-plugin@0.3">
+  <cssUrl>https://cdnjs.cloudflare.com/ajax/libs/doony/1.6/css/doony.min.css</cssUrl>
+  <jsUrl>https://cdnjs.cloudflare.com/ajax/libs/doony/1.6/js/doony.min.js</jsUrl>
+</org.codefirst.SimpleThemeDecorator>

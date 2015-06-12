@@ -1,0 +1,45 @@
+---
+- name: Register riak/packagecloud gpg key
+  apt_key:
+    url: https://packagecloud.io/gpg.key
+  sudo: yes
+
+- name: Install https transport package
+  apt:
+    update_cache: yes
+    pkg: apt-transport-https
+  sudo: yes
+
+- name: Copy basho apt source file
+  copy:
+    src: basho.list
+    dest: /etc/apt/sources.list.d/basho.list
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Install riak
+  apt:
+    update_cache: yes
+    pkg: riak
+  sudo: yes
+
+
+- name: Make riak listen on all interfaces
+  lineinfile:
+    dest: /etc/riak/riak.conf
+    regexp: '^listener\.http\.internal'
+    line: 'listener.http.internal = 0.0.0.0:8098'
+  sudo: yes
+  notify:
+  - restart riak
+
+- name: Make riak listen on all interfaces for protobuf
+  lineinfile:
+    dest: /etc/riak/riak.conf
+    regexp: '^listener\.protobuf\.internal'
+    line: 'listener.protobuf.internal = 0.0.0.0:8087'
+  sudo: yes
+  notify:
+  - restart riak
