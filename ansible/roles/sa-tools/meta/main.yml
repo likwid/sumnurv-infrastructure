@@ -1,0 +1,7 @@
+---
+galaxy_info:
+  author: WellMatch Development
+  description: Installs sysadmin tools
+  company: WellMatch
+  min_ansible_version: 1.2
+dependencies: []

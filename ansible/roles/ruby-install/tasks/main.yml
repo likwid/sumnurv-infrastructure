@@ -1,0 +1,32 @@
+---
+- name: Check for ruby-install
+  stat:
+    path: /usr/local/bin/ruby-install
+  register: ruby_install_runtime
+
+- name: Check for ruby-install tarball
+  stat:
+    path: /tmp/ruby-install-{{ ruby_install_version }}.tar.gz
+  when: not ruby_install_runtime.stat.exists
+  register: ruby_install_tarball
+
+- name: Download ruby-install
+  get_url:
+    url: http://github.com/postmodern/ruby-install/archive/v{{ ruby_install_version }}.tar.gz
+    dest: /tmp/ruby-install-{{ ruby_install_version }}.tar.gz
+  register: ruby_install_downloaded
+  when: not ruby_install_runtime.stat.exists and not ruby_install_tarball.stat.exists
+
+- name: Unarchive ruby-install
+  unarchive:
+    copy: no
+    src: /tmp/ruby-install-{{ ruby_install_version }}.tar.gz
+    dest: /tmp
+  register: ruby_install_untarred
+
+- name: Install ruby-install
+  command: make install
+  args:
+    chdir: /tmp/ruby-install-{{ ruby_install_version }}
+    creates: /usr/local/bin/ruby-install
+  sudo: yes

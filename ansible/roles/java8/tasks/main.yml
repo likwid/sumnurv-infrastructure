@@ -6,6 +6,7 @@
     validate_certs: no
   sudo: yes
   with_items:
+  #- ppa:jochenkemnade/openjdk-8
   - ppa:openjdk-r/ppa
 
 - name: Install java 8 and dependencies

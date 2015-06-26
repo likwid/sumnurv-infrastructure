@@ -1,0 +1,8 @@
+---
+postgres_base:
+- postgresql
+- postgresql-contrib
+- postgresql-server-dev-9.3
+
+postgres_pip_packages:
+- psycopg2

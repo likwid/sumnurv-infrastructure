@@ -1,0 +1,96 @@
+---
+- name: Check if docker is mounted btrfs already
+  shell: mount |grep "{{ docker_mount_point }} type btrfs"
+  ignore_errors: True
+  register: docker_btrfs
+  changed_when: docker_btrfs.rc > 0
+
+- name: Ensure docker mount point exists
+  file:
+    path: "{{ docker_mount_point }}"
+    state: directory
+  sudo: yes
+
+- name: Install btrfs
+  apt:
+    pkg: btrfs-tools
+    update_cache: yes
+  sudo: yes
+  when: docker_btrfs|changed
+
+- name: Configure disk with btrfs
+  shell: mkfs.btrfs -f {{ disk_device }}
+  sudo: yes
+  when: docker_btrfs|changed
+  ignore_errors: yes
+
+- name: Ensure docker directory is mounted
+  mount: 
+    name: "{{ docker_mount_point }}"
+    fstype: btrfs
+    src: "{{ disk_device }}"
+    state: mounted
+  sudo: yes
+
+- name: Add Docker repository key
+  apt_key:
+    id: A88D21E9
+    url: http://get.docker.io/gpg
+    state: present
+  sudo: yes
+
+- name: Add Docker repository
+  apt_repository:
+    repo: deb http://get.docker.io/ubuntu docker main
+    update_cache: yes
+    state: present
+  sudo: yes
+
+- name: Install python-setuptools for easy_install and pip
+  apt:
+    pkg: python-setuptools
+  sudo: yes
+
+- name: Install pip
+  easy_install:
+    name: pip
+  sudo: yes
+
+- name: Install docker-py for managing docker via ansible
+  pip:
+    name: docker-py
+  sudo: yes
+
+- name: Install (or update) docker.io
+  apt:
+    name: docker.io
+    state: latest
+    update_cache: yes
+  sudo: yes
+
+- name: Install Docker
+  apt:
+    pkg: lxc-docker-{{ docker_version }}
+  sudo: yes
+
+- name: Configure docker use btrfs
+  lineinfile: 
+    dest: /etc/default/docker.io 
+    regexp: "#DOCKER_OPTS"
+    line: "DOCKER_OPTS=\"-s btrfs -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\""
+    backrefs: yes
+  sudo: yes
+  notify:
+  - restart docker
+
+- name: Ensure docker is running
+  service: 
+    name: docker
+    state: running
+  sudo: yes
+
+- name: Add ssh user to docker group
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: docker
+  sudo: yes

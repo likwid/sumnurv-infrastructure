@@ -1,0 +1,16 @@
+---
+- name: Check if influx deb package exists
+  stat:
+    path: /tmp/{{ influx_deb_name }}
+  register: influx_package_downloaded
+
+- name: Download influx deb package
+  get_url:
+    url: "{{ influx_deb_url }}"
+    dest: /tmp/{{ influx_deb_name }}
+  when: not influx_package_downloaded.stat.exists
+
+- name: Install influx
+  apt:
+    deb: /tmp/{{ influx_deb_name }}
+  sudo: yes

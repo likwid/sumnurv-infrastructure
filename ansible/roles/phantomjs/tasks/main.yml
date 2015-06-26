@@ -1,0 +1,40 @@
+---
+- name: Check for phantomjs download
+  stat:
+    path: /tmp/phantomjs-{{ phantomjs_version }}-linux-x86_64.tar.bz2
+  register: already_downloaded
+
+- name: Check for unarchived
+  stat:
+    path: /tmp/phantomjs-{{ phantomjs_version }}-linux-x86_64
+  register: already_unpacked
+
+- name: Download phantomjs
+  get_url:
+    url: https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-{{ phantomjs_version }}-linux-x86_64.tar.bz2
+    dest: /tmp/
+  sudo: no
+  when: already_downloaded.stat.exists != True
+
+- name: Unarchive phantomjs
+  unarchive:
+    src: /tmp/phantomjs-{{ phantomjs_version }}-linux-x86_64.tar.bz2
+    dest: /tmp
+    copy: no
+  sudo: no
+  when: already_unpacked.stat.exists != True
+
+- name: Copy to /usr/local/bin
+  command: cp /tmp/phantomjs-{{ phantomjs_version }}-linux-x86_64/bin/phantomjs /usr/local/bin
+  args:
+    creates: /usr/local/bin/phantomjs
+  sudo: yes
+
+- name: Set permissions for phantomjs
+  file:
+    path: /usr/local/bin/phantomjs
+    mode: 0755
+    owner: root
+    group: root
+    state: file
+  sudo: yes

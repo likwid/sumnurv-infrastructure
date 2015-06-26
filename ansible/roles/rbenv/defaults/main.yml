@@ -1,0 +1,8 @@
+---
+ruby_versions:
+- 2.0.0-p481
+- 2.1.2
+- 2.1.5
+global_ruby_version: "2.1.5"
+bundler_version: "1.7.13"
+

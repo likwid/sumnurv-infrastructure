@@ -1,0 +1,43 @@
+---
+- name: Install postgres apt packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+  sudo: yes
+  with_items: postgres_base
+
+- name: Install postgres pip packages
+  pip:
+    name: "{{ item }}"
+  sudo: yes
+  with_items: postgres_pip_packages
+
+- name: Create default user for postgres
+  postgresql_user:
+    name: "{{ ansible_ssh_user }}"
+    role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
+  sudo: yes
+  sudo_user: postgres
+
+- name: Copy pg_hba.conf
+  copy:
+    src: pg_hba.conf
+    dest: /etc/postgresql/9.3/main/pg_hba.conf
+    mode: 0640
+    owner: postgres
+    group: postgres
+  sudo: yes
+
+- name: Make postgres listen on all interfaces
+  lineinfile:
+    regexp: "^listen_addresses "
+    insertafter: "^#listen_addresses"
+    line: "listen_addresses = '0.0.0.0'"
+    dest: /etc/postgresql/9.3/main/postgresql.conf
+  sudo: yes
+
+- name: Restart postgres
+  service:
+    name: postgresql
+    state: restarted
+  sudo: yes

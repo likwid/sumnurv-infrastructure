@@ -1,0 +1,32 @@
+---
+- name: Check for chruby
+  stat:
+    path: /usr/local/bin/chruby
+  register: chruby_runtime
+
+- name: Check for chruby tarball
+  stat:
+    path: /tmp/chruby-{{ chruby_version }}.tar.gz
+  when: not chruby_runtime.stat.exists
+  register: chruby_tarball
+
+- name: Download chruby
+  get_url:
+    url: http://github.com/postmodern/chruby/archive/v{{ chruby_version }}.tar.gz
+    dest: /tmp/chruby-{{ chruby_version }}.tar.gz
+  register: chruby_downloaded
+  when: not chruby_runtime.stat.exists and not chruby_tarball.stat.exists
+
+- name: Unarchive chruby
+  unarchive:
+    copy: no
+    src: /tmp/chruby-{{ chruby_version }}.tar.gz
+    dest: /tmp
+  register: chruby_untarred
+
+- name: Install chruby
+  command: make install
+  args:
+    chdir: /tmp/chruby-{{ chruby_version }}
+    creates: /usr/local/bin/chruby
+  sudo: yes

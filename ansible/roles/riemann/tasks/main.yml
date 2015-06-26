@@ -1,0 +1,16 @@
+---
+- name: Check if riemann deb package exists
+  stat:
+    path: /tmp/{{ riemann_deb_name }}
+  register: riemann_package_downloaded
+
+- name: Download riemann deb package
+  get_url:
+    url: "{{ riemann_deb_url }}"
+    dest: /tmp/{{ riemann_deb_name }}
+  when: not riemann_package_downloaded.stat.exists
+
+- name: Install riemann
+  apt:
+    deb: /tmp/{{ riemann_deb_name }}
+  sudo: yes

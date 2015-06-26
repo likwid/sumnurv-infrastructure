@@ -1,0 +1,81 @@
+---
+- name: Clone rbenv git repository
+  git:
+    repo: https://github.com/sstephenson/rbenv.git
+    dest: /home/{{ ansible_ssh_user }}/.rbenv
+  sudo: no
+
+- name: Clone ruby-build
+  git:
+    repo: https://github.com/sstephenson/ruby-build.git
+    dest: /home/{{ ansible_ssh_user }}/.rbenv/plugins/ruby-build
+  sudo: no
+
+- name: Clone ruby-gemset
+  git:
+    repo: https://github.com/jf/rbenv-gemset.git
+    dest: /home/{{ ansible_ssh_user }}/.rbenv/plugins/ruby-gemset
+  sudo: no
+
+- name: Touch .rbenv_profile
+  file:
+    path: /home/{{ ansible_ssh_user  }}/.rbenv_profile
+    owner: "{{ ansible_ssh_user }}"
+    state: touch
+  sudo: no
+
+- name: Put rbenv shims in .rbenv_profile
+  lineinfile:
+    dest: /home/{{ ansible_ssh_user  }}/.rbenv_profile
+    line: "{{ item }}"
+  sudo: no
+  with_items:
+  - export PATH="$HOME/.rbenv/bin:$PATH"
+  - eval "$(rbenv init -)"
+
+- name: check if ruby is installed
+  shell: bash -lc ". $HOME/.rbenv_profile && rbenv versions | grep {{ ruby_versions[0] }}"
+  register: ruby_installed
+  changed_when: false
+  ignore_errors: yes
+  sudo: no
+
+- name: install ruby
+  shell: bash -lc ". $HOME/.rbenv_profile && rbenv install {{ item }}"
+  when: ruby_installed.rc != 0
+  with_items: ruby_versions
+  sudo: no
+
+- name: set global ruby to {{ global_ruby_version }}
+  shell: bash -lc ". $HOME/.rbenv_profile && rbenv global {{ global_ruby_version }} && rbenv rehash"
+  when: ruby_installed.rc != 0
+  sudo: no
+
+- name: install bundler {{ bundler_version }} in rubies
+  shell: >
+    bash -lc ". $HOME/.rbenv_profile &&
+    rbenv local {{ item }} &&
+    rbenv rehash &&
+    gem install bundler -v {{ bundler_version }} &&
+    rbenv rehash"
+  args:
+    chdir: /tmp
+  with_items: ruby_versions
+  sudo: no
+
+- name: uninstall undesirable bundler versions
+  shell: >
+    bash -lc ". $HOME/.rbenv_profile &&
+    rbenv local {{ item }} &&
+    rbenv rehash &&
+    (gem uninstall bundler -aIx -v \"> {{ bundler_version }}\" ||
+    gem uninstall bundler -aIx -v \"< {{ bundler_version }}\" || true)"
+  args:
+    chdir: /tmp
+  with_items: ruby_versions
+  sudo: no
+
+- name: Install hitch in rubies
+  shell: bash -lc ". $HOME/.rbenv_profile && rbenv shell {{ item }} && gem install hitch"
+  with_items: ruby_versions
+  sudo: no

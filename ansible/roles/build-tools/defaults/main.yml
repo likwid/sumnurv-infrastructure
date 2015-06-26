@@ -1,0 +1,20 @@
+---
+build_base:
+- build-essential
+- autoconf
+- bison
+- libcurl3-dev
+- libffi-dev
+- libgdbm-dev
+- libncurses5-dev
+- libpq-dev
+- libreadline-dev
+- libreadline6-dev
+- libssl-dev
+- libtinfo-dev
+- libyaml-dev
+- python-setuptools
+- python-dev
+- git
+- zlib1g-dev
+

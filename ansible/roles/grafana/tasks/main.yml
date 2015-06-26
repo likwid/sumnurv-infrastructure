@@ -1,0 +1,16 @@
+---
+- name: Check if grafana deb package exists
+  stat:
+    path: /tmp/{{ grafana_deb_name }}
+  register: grafana_package_downloaded
+
+- name: Download grafana deb package
+  get_url:
+    url: "{{ grafana_deb_url }}"
+    dest: /tmp/{{ grafana_deb_name }}
+  when: not grafana_package_downloaded.stat.exists
+
+- name: Install grafana
+  apt:
+    deb: /tmp/{{ grafana_deb_name }}
+  sudo: yes

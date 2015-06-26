@@ -1,0 +1,11 @@
+---
+sa_tools_base:
+  - curl
+  - jq
+  - mosh
+  - tree
+  - wget
+
+sa_tools_pip:
+  - httpie
+  - httplib2

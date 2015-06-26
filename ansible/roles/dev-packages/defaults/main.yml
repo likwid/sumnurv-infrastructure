@@ -1,0 +1,13 @@
+---
+dev_base:
+- sqlite
+- libsqlite3-dev
+- exuberant-ctags
+- markdown
+- imagemagick
+- silversearcher-ag
+- tig
+
+dev_pip_base:
+- name: docker-compose
+  version: 1.1.0

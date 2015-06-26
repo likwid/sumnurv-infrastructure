@@ -1,0 +1,30 @@
+---
+- name: Install unzip
+  apt:
+    pkg: unzip
+    update_cache: yes
+    cache_valid_time: 300
+
+- name: Check for packer download
+  stat:
+    path: /tmp/packer_{{ packer_version }}_linux_amd64.zip
+  register: packer_downloaded
+
+- name: Check for packer installed
+  stat:
+    path: /usr/local/bin/packer
+  register: packer_installed
+
+- name: Download packer.io
+  get_url:
+    url: https://dl.bintray.com/mitchellh/packer/packer_{{ packer_version }}_linux_amd64.zip
+    dest: /tmp
+  when: not packer_downloaded.stat.exists
+
+- name: Unpack packer.io 
+  unarchive:
+    copy: no
+    src: /tmp/packer_{{ packer_version }}_linux_amd64.zip
+    dest: /usr/local/bin
+    creates: /usr/local/bin/packer
+  when: not packer_installed.stat.exists

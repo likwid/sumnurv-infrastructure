@@ -1,0 +1,4 @@
+---
+grafana_version: 2.0.2
+grafana_deb_name: grafana_{{ grafana_version }}_amd64.deb
+grafana_deb_url: https://grafanarel.s3.amazonaws.com/builds/{{ grafana_deb_name }}

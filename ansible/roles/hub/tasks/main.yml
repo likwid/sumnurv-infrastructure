@@ -1,0 +1,55 @@
+- name: Check for hub download
+  stat:
+    path: /tmp/hub-linux-amd64-{{ hub_version }}.tar.gz
+    path: /tmp/{{ new_format}}.{{ new_extension }}
+  register: already_downloaded
+
+- name: Check for unarchived
+  stat:
+    path: /tmp/{{ old_format }}
+  register: already_unpacked
+
+- name: Download hub
+  get_url:
+    url: https://github.com/github/hub/releases/download/v{{ hub_version }}/{{ new_format }}.{{ new_extension }}
+    dest: /tmp/
+  sudo: no
+  when: already_downloaded.stat.exists != True
+
+- name: Unarchive hub
+  unarchive:
+    src: /tmp/{{ new_format }}.{{ new_extension }}
+    dest: /tmp
+    copy: no
+  sudo: no
+  when: already_unpacked.stat.exists != True
+
+- name: Copy to /usr/local/bin
+  command: mv /tmp/{{ old_format }}/hub /usr/local/bin
+  sudo: yes
+  args:
+    creates: /usr/local/bin/hub
+
+- name: Set permissions for hub
+  file:
+    path: /usr/local/bin/hub
+    mode: 0755
+    owner: root
+    group: root
+    state: file
+  sudo: yes
+
+- name: Touch .hub_profile
+  file:
+    path: /home/{{ ansible_ssh_user  }}/.hub_profile
+    owner: "{{ ansible_ssh_user }}"
+    state: touch
+  sudo: no
+
+- name: Alias git in .hub_profile
+  lineinfile:
+    dest: /home/{{ ansible_ssh_user  }}/.hub_profile
+    line: "{{ item }}"
+  sudo: no
+  with_items:
+  - eval "$(hub alias -s)"

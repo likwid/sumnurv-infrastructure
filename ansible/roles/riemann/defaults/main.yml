@@ -1,0 +1,4 @@
+---
+riemann_version: 0.2.9
+riemann_deb_name: riemann_{{ riemann_version }}_all.deb
+riemann_deb_url: https://aphyr.com/riemann/{{ riemann_deb_name }}

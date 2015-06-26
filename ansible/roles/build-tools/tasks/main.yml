@@ -1,0 +1,24 @@
+---
+- name: Ensure the system can use the HTTPS transport for APT
+  stat:
+    path: /usr/lib/apt/methods/https
+  register: apt_https_transport
+
+- name: Install HTTPS transport for APT
+  apt:
+    pkg: apt-transport-https
+  when: not apt_https_transport.stat.exists
+
+- name: Install build tool packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 300
+  sudo: yes
+  with_items: build_base
+
+- name: Install pip
+  command: easy_install pip
+  args:
+    creates: /usr/local/bin/pip
+  sudo: yes

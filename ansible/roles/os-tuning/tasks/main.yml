@@ -1,0 +1,39 @@
+---
+- name: Set hostname
+  hostname:
+    name: wm-basebox
+  sudo: yes
+
+- name: Set max # of files
+  sysctl:
+    name: fs.file-max
+    value: "100000"
+    reload: yes
+  sudo: yes
+
+- name: Add vagrant to security limit file
+  lineinfile:
+    dest: /etc/security/limits.d/vagrant.conf
+    create: yes
+    line: "{{ item }}"
+  sudo: yes
+  with_items:
+  - "vagrant   soft   nofile     100000"
+  - "vagrant   hard   nofile     100000"
+
+- name: Remove chef-client and puppet
+  apt:
+    pkg: "{{ item }}"
+    state: absent
+  sudo: yes
+  with_items:
+  - puppet
+  - puppet-common
+  - chef
+  - chef-zero
+
+- name: Set timezone to central
+  shell: echo "America/Chicago" > /etc/timezone
+  sudo: yes
+  notify:
+  - reconfigure tzdata

@@ -1,0 +1,4 @@
+---
+docker_mount_point: /var/lib/docker
+disk_device: /dev/sdb
+docker_version: 1.7.0

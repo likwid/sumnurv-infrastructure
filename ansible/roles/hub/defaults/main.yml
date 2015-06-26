@@ -1,0 +1,6 @@
+---
+hub_version: 2.2.0-rc1
+new_format: hub-linux-amd64-{{ hub_version }}
+new_extension: "tar.gz"
+old_format: hub_{{ hub_version }}_linux_amd64
+old_extension: "gz.tar"

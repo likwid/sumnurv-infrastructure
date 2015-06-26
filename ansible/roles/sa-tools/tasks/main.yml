@@ -1,0 +1,15 @@
+---
+- name: Install sysadmin apt packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 300
+  sudo: yes
+  with_items: sa_tools_base
+
+- name: Install sysadmin PIP tools
+  pip:
+    name: "{{ item }}"
+  sudo: yes
+  with_items: sa_tools_pip
+
