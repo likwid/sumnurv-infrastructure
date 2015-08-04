@@ -9,6 +9,7 @@
   git:
     repo: https://github.com/sstephenson/ruby-build.git
     dest: /home/{{ ansible_ssh_user }}/.rbenv/plugins/ruby-build
+    version: "{{ ruby_build_version }}"
   sudo: no
 
 - name: Clone ruby-gemset
@@ -41,8 +42,8 @@
   sudo: no
 
 - name: install ruby
-  shell: bash -lc ". $HOME/.rbenv_profile && rbenv install {{ item }}"
-  when: ruby_installed.rc != 0
+  shell: bash -lc ". $HOME/.rbenv_profile && rbenv install -fv {{ item }}"
+  # when: ruby_installed.rc != 0
   with_items: ruby_versions
   sudo: no
 
