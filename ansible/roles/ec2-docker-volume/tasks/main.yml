@@ -1,0 +1,8 @@
+---
+- name: Create docker btrfs volume
+  ec2_vol:
+    device_name: "{{ vol_disk_device }}"
+    encrypted: yes
+    instance: "{{ ec2_instance_id }}"
+    region: "{{ aws_region }}"
+    volume_size: "{{ aws_vol_size_gb }}"

@@ -4,7 +4,4 @@
   sudo: yes
   roles:
   - docker
-  - java8
-  - influxdb
-  - riemann
-  - grafana
+  - rbenv

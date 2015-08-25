@@ -1,0 +1,24 @@
+---
+notification_configs:
+- name: android
+
+- name: benefits
+
+- name: devops
+
+- name: frontend
+
+- name: ios
+
+- name: search
+
+- name: webclient
+
+aggregation_rules:
+- notification_config_name: devops
+  filters:
+  - name: severity
+    value: page
+  - name: team
+    value: devops
+  repeat_rate_seconds: 3600

@@ -1,0 +1,10 @@
+---
+aws_instance_count: 1
+aws_default_sg: "CHANGEME"
+aws_instance_type: m3.large
+aws_private_subnets:
+- CHANGEME
+- CHANGEME
+aws_region: us-west-1
+aws_iam_profile: CHANGEME
+aws_root_volume_size_gb: 100

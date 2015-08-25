@@ -1,0 +1,115 @@
+---
+- name: Include secure variables
+  include_vars: vars.secure.yml
+
+- name: Login to the docker registry
+  command: >
+    docker login -u wellmatch-dev
+    -p {{ registry_password }}
+    -e dev+ansible@wellmatchhealth.com https://registry.wellmatchhealth.com
+
+- name: Pull down containers
+  command: docker pull {{ item }}
+  with_items:
+  - registry.wellmatchhealth.com/prometheus_bridge_dev
+  - prom/alertmanager
+  - prom/prometheus
+  - grafana/grafana
+
+- name: Make sure prometheus directories exist
+  file:
+    path: "{{ item }}"
+    mode: 0755
+    owner: root
+    group: root
+    state: directory
+  sudo: yes
+  with_items:
+  - "{{ conf_dir }}"
+  - "{{ server_data_dir }}"
+
+- name: Create placeholder configurations
+  file:
+    path: "{{ conf_dir }}/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+    state: touch
+  sudo: yes
+  with_items:
+  - prometheus.yml
+  - alertmanager.conf
+
+- name: Check for existing alert manager container
+  command: docker inspect alerts
+  ignore_errors: yes
+  register: has_alerts
+
+- name: Run alert manager container
+  command: >
+    docker run -d -p {{ alertmanager_port }}:9093 --restart=always
+    -v {{ conf_dir }}/alertmanager.conf:/alertmanager.conf
+    --name alerts prom/alertmanager
+    -config.file=/alertmanager.conf
+    -web.external-url={{ alertmanager_web_url }}
+  when: has_alerts.rc > 0
+
+- name: Check for existing server container
+  command: docker inspect server
+  ignore_errors: yes
+  register: has_server
+
+- name: Run prometheus server container
+  command: >
+    docker run -d -p {{ server_port }}:9090 --restart=always
+    -v {{ conf_dir }}:{{ conf_dir }}
+    -v {{ server_data_dir }}:{{ server_data_dir }}
+    --name server prom/prometheus
+    -config.file={{ conf_dir }}/prometheus.yml
+    -storage.local.path={{ server_data_dir }}
+    -alertmanager.url=http://172.17.42.1:{{ alertmanager_port }}
+    -web.external-url={{ server_web_url }}
+  when: has_server.rc > 0
+
+- name: Check for existing grafana container
+  command: docker inspect dashboard
+  ignore_errors: yes
+  register: has_dashboard
+
+- name: Write grafana configuration file
+  template:
+    src: grafana.ini.j2
+    dest: "{{ conf_dir }}/grafana.ini"
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Get prometheus plugin for grafana
+  git:
+    repo: https://github.com/grafana/grafana-plugins.git
+    dest: "/home/{{ ansible_ssh_user }}/grafana-plugins"
+
+- name: Run grafana container
+  command: >
+    docker run -d -p 3000:3000 --restart=always
+    -v {{ conf_dir }}/grafana.ini:/etc/grafana/grafana.ini
+    -v /home/{{ ansible_ssh_user }}/grafana-plugins/datasources/prometheus:/usr/share/grafana/public/app/plugins/datasource/prometheus
+    --name dashboard
+    grafana/grafana
+  when: has_dashboard.rc > 0
+
+- name: Check for existing bridge container
+  command: docker inspect bridge
+  ignore_errors: yes
+  register: has_bridge
+
+- name: Run prometheus bridge container
+  command: >
+    docker run -d -p 10005:9091 --restart=always
+    --name bridge
+    -e WM_ENV=production
+    -e WM_REDIS_URL=redis://redis-platform.prod.wellmatchhealth.com:6379
+    -e LOG_LEVEL=info
+    registry.wellmatchhealth.com/prometheus_bridge_dev
+  when: has_bridge.rc > 0

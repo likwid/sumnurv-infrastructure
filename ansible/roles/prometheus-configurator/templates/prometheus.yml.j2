@@ -1,0 +1,31 @@
+global:
+  scrape_interval: "15s"     # By default, scrape targets every 15 seconds.
+  evaluation_interval: "15s" # By default, evaluate rules every 15 seconds.
+
+scrape_configs:
+# Gather metrics from the prometheus server itself
+- job_name: "prometheus"
+  scrape_interval: "5s"
+  target_groups:
+  - targets: ["localhost:9090"]
+
+# Gather metrics from the prometheus bridge
+- job_name: "prometheus-bridge"
+  scrape_interval: "5s"
+  target_groups:
+  - targets: ["172.17.42.1:10005"]
+
+# Gather some metrics about the docker hosts. They each run a container
+# which publishes metrics to the prometheus server
+{% for host in groups['tag_Purpose_docker_host'] %}
+- job_name: "{{ hostvars[host]['ec2_tag_Name'] }}"
+  scrape_interval: "5s"
+  target_groups:
+  - targets: ['{{ host }}:10004']
+    labels:
+      purpose: "{{ hostvars[host]['ec2_tag_Purpose'] }}"
+      hostname: "{{ hostvars[host]['ec2_tag_Name'] }}"
+
+{% endfor %}
+
+rule_files: {{ server_rule_files }}

@@ -1,0 +1,6 @@
+---
+- name: reload prometheus server
+  command: docker kill --signal="HUP" server
+
+- name: restart alertmanager
+  command: docker restart alerts

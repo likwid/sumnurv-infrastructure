@@ -1,0 +1,9 @@
+ALERT http_request_rate
+  IF sum(rate(http_requests_total[1m])) by (instance) > 10
+  FOR 15s
+  WITH {
+    severity="page",
+    team="devops"
+  }
+  SUMMARY "High request frequency on {{$labels.instance}}"
+  DESCRIPTION "{{$labels.instance}} has a average frequency above 2 req/s (current value: {{$value}})"

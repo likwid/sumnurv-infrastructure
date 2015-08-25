@@ -1,0 +1,3 @@
+---
+syslog_server: logs.domain.com
+syslog_port: 5001

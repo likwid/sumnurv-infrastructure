@@ -1,0 +1,33 @@
+{% for notification in notification_configs -%}
+notification_config {
+  {% if 'pagerduty_token' in notification -%}
+  pagerduty_config {
+    service_key: "{{ notification.pagerduty_token }}"
+  }
+  {% endif -%}
+  {% if 'hipchat_token' in notification and 'hipchat_room_id' in notification -%}
+  hipchat_config {
+    auth_token: "{{ notification.hipchat_token }}"
+    room_id: {{ notification.hipchat_room_id }}
+    send_resolved: true
+    color: "{{ notification.hipchat_color | default('purple') }}"
+  }
+  {% endif -%}
+  name: "{{ notification.name }}"
+}
+
+{% endfor -%}
+
+{% for rule in aggregation_rules -%}
+aggregation_rule {
+  {% for filter in rule.filters -%}
+  filter {
+    name_re: "{{ filter.name }}"
+    value_re: "{{ filter.value }}"
+  }
+  {% endfor -%}
+  repeat_rate_seconds: {{ rule.repeat_rate_seconds | default(3600) }}
+  notification_config_name: "{{ rule.notification_config_name }}"
+}
+
+{% endfor -%}

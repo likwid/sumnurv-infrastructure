@@ -1,0 +1,11 @@
+---
+- name: Copy config to enable UDP listener and forward all messages to logstash
+  copy:
+    src: 51-forward-to-logstash.conf
+    dest: /etc/rsyslog.d/51-forward-to-logstash.conf
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - restart syslog

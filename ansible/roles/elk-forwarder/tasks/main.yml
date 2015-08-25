@@ -1,0 +1,31 @@
+---
+
+- name: Add apt repo keys
+  apt_key:
+    url: "{{ item }}"
+  sudo: yes
+  with_items:
+  - http://packages.elasticsearch.org/GPG-KEY-elasticsearch
+
+- name: Add repositories
+  apt_repository:
+    repo: "{{ item }}"
+  sudo: yes
+  with_items:
+  - deb http://packages.elasticsearch.org/logstashforwarder/debian stable main
+
+- name: Install packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+  sudo: yes
+  with_items:
+  - logstash-forwarder
+
+- name: Copy logstash syslog forwarder
+  copy:
+    src: logstash-forwarder.conf
+    dest: /etc/logstash-forwarder.conf
+  sudo: yes
+  notify:
+  - restart logstash-forwarder

@@ -1,0 +1,78 @@
+---
+- name: Include secure variables DB Backups
+  include_vars:  dbbackup.secure.vars.yml
+
+- name: Check for existing secrets container
+  command: docker inspect secrets
+  ignore_errors: yes
+  register: has_secrets
+  sudo: yes
+
+- name: Check for existing prom-host-exporter container
+  command: docker inspect prom-host-exporter
+  ignore_errors: yes
+  register: has_prom_exporter
+  sudo: yes
+
+- name: Check for existing logspout container
+  command: docker inspect logspout
+  ignore_errors: yes
+  register: has_logspout
+  sudo: yes
+
+- name: Create secrets container
+  command: >
+    docker create -v /srv/company/secrets --name secrets busybox
+  sudo: yes
+  when: has_secrets.rc > 0
+
+- name: Copy volume inspect script
+  copy:
+    src: secrets-inspect-vol.sh
+    dest: /tmp/secrets-inspect-vol.sh
+    mode: 0755
+    owner: "{{ ansible_ssh_user }}"
+    group: "{{ ansible_ssh_user }}"
+  sudo: yes
+
+- name: Get secrets file system
+  command: /tmp/secrets-inspect-vol.sh
+  register: secrets_vol_path
+  sudo: yes
+
+- name: Write ssl key to file system
+  shell: echo "{{ key }}" > {{ secrets_vol_path.stdout }}/private_key.pem
+  args:
+    creates: "{{ secrets_vol_path.stdout }}/private_key.pem"
+  no_log: yes
+  sudo: yes
+
+- name: Write db backup vars to file system
+  template:
+    src: db-backup-vars.sh.j2
+    dest: "{{ secrets_vol_path.stdout }}/db-backup-vars.sh"
+  sudo: yes
+
+- name: Run prometheus exporter container
+  command: >
+    docker run -d
+    --restart always
+    -p 10004:9104
+    -v /sys/fs/cgroup:/cgroup
+    -v /var/run/docker.sock:/var/run/docker.sock
+    --name prom-host-exporter
+    prom/container-exporter
+  sudo: yes
+  when: has_prom_exporter.rc > 0
+
+- name: Run logspout container
+  command:
+    docker run -d
+    --restart always
+    -p 8000
+    --volume=/var/run/docker.sock:/tmp/docker.sock
+    --name logspout
+    gliderlabs/logspout
+    syslog://{{ syslog_server }}:{{ syslog_port }}
+  sudo: yes
+  when: has_logspout.rc > 0

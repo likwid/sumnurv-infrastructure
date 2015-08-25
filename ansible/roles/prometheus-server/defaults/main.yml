@@ -1,0 +1,9 @@
+---
+conf_dir: /etc/prometheus
+alertmanager_web_url: https://alerts.domain.com
+alertmanager_port: 9093
+
+server_data_dir: /srv/prometheus/data
+server_web_url: https://prometheus.domain.com
+server_port: 9090
+

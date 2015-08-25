@@ -1,0 +1,4 @@
+---
+vol_disk_device: /dev/sdf
+aws_vol_size_gb: 100
+aws_region: us-west-1

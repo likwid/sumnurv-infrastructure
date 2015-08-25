@@ -1,0 +1,5 @@
+---
+conf_dir: /etc/prometheus
+server_rule_files:
+- http_request_rate.rules
+pagerduty_service_key: CHANGEME

@@ -1,0 +1,17 @@
+---
+- name: Install ntp
+  apt:
+    name: ntp
+    update_cache: yes
+  sudo: yes
+
+- name: Copy ntp configuration
+  copy:
+    src: ntp.conf
+    dest: /etc/ntp.conf
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - restart ntp

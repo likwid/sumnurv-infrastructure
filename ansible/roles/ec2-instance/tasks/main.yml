@@ -1,0 +1,89 @@
+---
+- name: Find ubuntu ami_id
+  ec2_ami_search:
+    distro: ubuntu
+    release: trusty
+    region: "{{ aws_region }}"
+    store: ebs-ssd
+    virt: hvm
+  register: ubuntu
+  when: not aws_ami_id is defined
+
+- name: Use user-defined ami
+  set_fact:
+    current_ami: "{{ aws_ami_id }}"
+  when: aws_ami_id is defined
+
+- name: Use ubuntu lookup ami
+  set_fact:
+    current_ami: "{{ ubuntu.ami }}"
+  when: not aws_ami_id is defined
+
+- name: Use randomly selected private subnet
+  set_fact:
+    current_subnet: "{{ item }}"
+  with_random_choice: aws_private_subnets
+  when: not aws_subnet_id is defined
+
+- name: Use user-defined subnet
+  set_fact:
+    current_subnet: "{{ aws_subnet_id }}"
+  when: aws_subnet_id is defined
+
+- name: Check if instance already exists
+  command: >
+    aws ec2 describe-instances --region {{ aws_region }}
+    --filters Name=tag:Name,Values={{ hostname }} Name=instance-state-name,Values=running
+    --query "Reservations[].Instances[].PrivateIpAddress" --output text
+  register: query_private_ip
+
+- name: Create an ec2 instance
+  ec2:
+    count: "{{ aws_instance_count }}"
+    group_id: "{{ aws_default_sg }}"
+    key_name: "{{ aws_key_name }}"
+    image: "{{ current_ami }}"
+    instance_profile_name: "{{ aws_iam_profile }}"
+    instance_type: "{{ aws_instance_type }}"
+    instance_tags:
+      Name: "{{ hostname }}"
+      Type: "{{ purpose }}"
+    region: "{{ aws_region }}"
+    volumes:
+    - device_name: /dev/sda1
+      volume_size: "{{ aws_root_volume_size_gb }}"
+    vpc_subnet_id: "{{ current_subnet }}"
+    wait: yes
+  when: query_private_ip.stdout == ''
+
+- name: Get ip address of existing or created instance
+  command: >
+    aws ec2 describe-instances --region {{ aws_region }}
+    --filters Name=tag:Name,Values={{ hostname }} Name=instance-state-name,Values=running
+    --query "Reservations[].Instances[].PrivateIpAddress" --output text
+  register: query_private_ip
+
+- name: Set fact for ip address
+  set_fact:
+    ec2_instance_private_address: "{{ query_private_ip.stdout }}"
+
+- name: Get instance ID of existing or created instance
+  command: >
+    aws ec2 describe-instances --region {{ aws_region }}
+    --filters Name=tag:Name,Values={{ hostname }} Name=instance-state-name,Values=running
+    --query "Reservations[].Instances[].InstanceId" --output text
+  register: query_instance_id
+
+- name: Set fact for instance ID
+  set_fact:
+    ec2_instance_id: "{{ query_instance_id.stdout }}"
+
+- name: Add instance to group for later plays
+  add_host:
+    name: "{{ ec2_instance_private_address }}"
+    groups: to_be_provisioned
+
+- name: Wait for ssh to respond
+  wait_for:
+    host: "{{ ec2_instance_private_address }}"
+    port: 22

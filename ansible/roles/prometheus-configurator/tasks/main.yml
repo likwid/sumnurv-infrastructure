@@ -1,0 +1,34 @@
+---
+- name: Template prometheus.yml
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ conf_dir }}/prometheus.yml"
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - reload prometheus server
+
+- name: Copy rules to configuration directory
+  copy:
+    src: "{{ item }}"
+    dest: "{{ conf_dir }}/{{ item }}"
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
+  with_items: server_rule_files
+  notify:
+  - reload prometheus server
+
+- name: Template alert manager configuration
+  template:
+    src: alertmanager.conf.j2
+    dest: "{{ conf_dir }}/alertmanager.conf"
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - restart alertmanager

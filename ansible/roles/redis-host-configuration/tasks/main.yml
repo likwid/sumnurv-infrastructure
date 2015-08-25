@@ -1,0 +1,41 @@
+---
+- name: Configure sysctl values for redis
+  sysctl:
+    name: vm.overcommit_memory
+    value: "1"
+    reload: yes
+    state: present
+    sysctl_set: yes
+  sudo: yes
+
+- name: Add transparent_hugepage to Grub configuration
+  lineinfile:
+    backrefs: yes
+    dest: /etc/default/grub.d/50-cloudimg-settings.cfg
+    regexp: ^(GRUB_CMDLINE_LINUX_DEFAULT=")((?!transparent_hugepage=never).+)
+    line: \1transparent_hugepage=never \2
+  sudo: yes
+  notify:
+  - update grub
+
+- name: Add transparent_hugepage to running system
+  shell: sh -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+  sudo: yes
+
+- name: Ensure redis configuration directory exists
+  file:
+    path: /etc/redis
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Copy redis configuration to host
+  copy:
+    src: redis.conf
+    dest: /etc/redis/docker-redis.conf
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
