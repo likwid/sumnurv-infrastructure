@@ -1,0 +1,24 @@
+---
+- name: "Check if deb package exists for {{ pkg_file_name }}"
+  stat:
+    path: /tmp/{{ pkg_file_name }}
+  register: package_downloaded
+
+- name: "Download deb package for {{ pkg_file_name }}"
+  get_url:
+    url: "{{ pkg_url }}"
+    dest: /tmp/{{ pkg_file_name }}
+  when: not package_downloaded.stat.exists
+
+- name: "Check md5 hash for {{ pkg_file_name }}"
+  stat:
+    get_md5: yes
+    path: /tmp/{{ pkg_file_name }}
+  register: package_md5sum
+  when: pkg_hash is defined
+
+- name: "Install package for {{ pkg_file_name }}"
+  apt:
+    deb: /tmp/{{ pkg_file_name }}
+  sudo: yes
+  when: pkg_hash is defined and package_md5sum.stat.md5 == pkg_hash

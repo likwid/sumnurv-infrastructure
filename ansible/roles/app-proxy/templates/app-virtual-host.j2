@@ -1,0 +1,41 @@
+server {
+  listen 80;
+    server_name www.{{ app_fqdn }} {{ app_fqdn }};
+    return 301 https://{{ app_fqdn }}$request_uri;
+}
+
+server {
+  listen 443;
+  server_name {{ app_fqdn }};
+
+  ssl on;
+  ssl_certificate /etc/ssl/{{ ssl_domain | default('domain.com') }}.crt;
+  ssl_certificate_key /etc/ssl/{{ ssl_domain | default('domain.com') }}.key;
+
+  ssl_session_timeout 5m;
+
+  ssl_prefer_server_ciphers On;
+  ssl_protocols TLSv1.2 TLSv1.1 TLSv1;
+  ssl_ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS;
+
+  error_log syslog:server=localhost,facility=local7 error;
+  # access_log syslog:server=localhost,facility=local7 logstash;
+
+  location /deploy/next {
+    return 200 "{{ color_next }}";
+  }
+
+  location /deploy/current {
+    return 200 "{{ color_current }}";
+  }
+
+  location / {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header Host $http_host;
+    proxy_redirect off;
+    proxy_connect_timeout {{ app_proxy_timeout }}s;
+    proxy_next_upstream error timeout;
+    proxy_pass http://{{ app_name }}-{{ color_current }};
+  }
+}

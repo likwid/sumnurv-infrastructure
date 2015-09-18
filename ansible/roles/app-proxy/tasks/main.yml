@@ -1,0 +1,59 @@
+---
+- name: Add nginx/stable ppa
+  apt_repository:
+    repo: "{{ item }}"
+  sudo: yes
+  with_items:
+  - ppa:nginx/stable
+
+- name: Install packages
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+  sudo: yes
+  with_items:
+  - nginx
+  - python-setuptools
+
+- name: Install pip with easy_install
+  easy_install:
+    name: pip
+  sudo: yes
+
+- name: Install passlib for managing htpasswd
+  pip:
+    name: passlib
+  sudo: yes
+
+- name: Ensure sites folders exist
+  file:
+    path: /etc/nginx/{{ item }}
+    mode: 0755
+    owner: root
+    group: root
+    state: directory
+  sudo: yes
+  with_items:
+  - sites-available
+  - sites-enabled
+
+- name: Add nginx configuration
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - reload nginx
+
+- name: Disable default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  sudo: yes
+  notify:
+  - reload nginx
+
+
