@@ -1,0 +1,4 @@
+---
+docker_compose:
+- name: docker-compose
+  version: 1.3.3

@@ -1,0 +1,6 @@
+boto3==1.1.4
+botocore==1.2.10
+PyYAML==3.10
+requests==2.6.2
+simplejson==3.3.1
+six==1.5.2

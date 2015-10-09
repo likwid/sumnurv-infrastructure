@@ -1,0 +1,32 @@
+---
+# - name: Install docker-compose
+#   pip:
+#     name: "{{ item.name }}"
+#     version: "{{ item.version }}"
+#   sudo: yes
+#   with_items: pip_packages
+#
+- name: Manually update pip
+  command: pip install -U pip
+  sudo: yes
+
+- name: Install specific version of docker-compose
+  command: pip install -U {{ item.name }}=={{ item.version }}
+  sudo: yes
+  with_items: docker_compose
+
+- name: Remove fig in /usr/local/bin for linking
+  file:
+    path: /usr/local/bin/fig
+    state: absent
+  sudo: yes
+
+- name: Set up fig symlink
+  file:
+    src: /usr/local/bin/docker-compose
+    dest: /usr/local/bin/fig
+    state: link
+    owner: root
+    group: root
+    mode: 0755
+  sudo: yes

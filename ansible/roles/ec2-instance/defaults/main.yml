@@ -6,5 +6,9 @@ aws_private_subnets:
 - CHANGEME
 - CHANGEME
 aws_region: us-west-1
-aws_iam_profile: CHANGEME
+aws_iam_profile: 
 aws_root_volume_size_gb: 100
+aws_volumes:
+- device_name: /dev/sda1
+  volume_size: "{{ aws_root_volume_size_gb }}"
+  delete_on_termination: yes

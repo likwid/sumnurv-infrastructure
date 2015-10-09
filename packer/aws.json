@@ -1,0 +1,68 @@
+{
+  "variables": {
+    "home": "{{env `HOME`}}",
+    "access_key": "{{env `AWS_ACCESS_KEY`}}",
+    "secret_key": "{{env `AWS_SECRET_KEY`}}",
+    "region": "us-east-1",
+    "instance_type": "m4.large",
+    "hvm_ami_id": "ami-d05e75b8",
+    "hvm_ami_name_pattern": "playground"
+  },
+
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "associate_public_ip_address": true,
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region`}}",
+      "source_ami": "{{user `hvm_ami_id`}}",
+      "instance_type": "{{user `instance_type`}}",
+      "ssh_username": "ubuntu",
+      "ami_name": "{{user `hvm_ami_name_pattern`}} {{timestamp}}",
+      "vpc_id": "vpc-acd4e3c9",
+      "subnet_id": "subnet-c67340fc",
+      "run_tags": {
+        "Type": "Packer"
+      },
+      "tags": {
+        "OSVersion": "Ubuntu 14.04",
+        "Virtualization": "hvm",
+        "Type": "basebox"
+      },
+      "launch_block_device_mappings": [
+	{
+	  "device_name": "/dev/sda1",
+          "volume_type": "gp2",
+          "volume_size": 8,
+	  "snapshot_id": "snap-4e3c6d2b",
+	  "delete_on_termination": true
+	},
+        {
+          "device_name": "/dev/sdf",
+          "volume_type": "gp2",
+          "volume_size": 50,
+	  "delete_on_termination": true
+        }
+      ]
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "scripts": [
+        "scripts/aws_update.sh",
+        "scripts/ansible.sh"
+      ],
+      "execute_command": "echo ''| sudo -S sh '{{.Path}}'"
+    }, {
+      "type": "ansible-local",
+      "playbook_file": "aws.provision.yml",
+      "role_paths": [
+        "../ansible/roles/btrfs-docker",
+        "../ansible/roles/docker-compose"
+      ]
+    }
+  ]
+}

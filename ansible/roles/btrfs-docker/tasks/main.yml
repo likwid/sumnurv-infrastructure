@@ -25,25 +25,11 @@
   ignore_errors: yes
 
 - name: Ensure docker directory is mounted
-  mount: 
+  mount:
     name: "{{ docker_mount_point }}"
     fstype: btrfs
     src: "{{ disk_device }}"
     state: mounted
-  sudo: yes
-
-- name: Add Docker repository key
-  apt_key:
-    id: A88D21E9
-    url: http://get.docker.io/gpg
-    state: present
-  sudo: yes
-
-- name: Add Docker repository
-  apt_repository:
-    repo: deb http://get.docker.io/ubuntu docker main
-    update_cache: yes
-    state: present
   sudo: yes
 
 - name: Install python-setuptools for easy_install and pip
@@ -61,21 +47,27 @@
     name: docker-py
   sudo: yes
 
-- name: Install (or update) docker.io
-  apt:
-    name: docker.io
-    state: latest
-    update_cache: yes
+- name: Add Docker repository key
+  apt_key:
+    id: 58118E89F3A912897C070ADBF76221572C52609D
+    keyserver: hkp://p80.pool.sks-keyservers.net:80
+    state: present
   sudo: yes
 
-- name: Install Docker
+- name: Download specific docker version
+  get_url:
+    url: http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
+    dest: /tmp/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Install docker-engine from deb
   apt:
-    pkg: lxc-docker-{{ docker_version }}
+    deb: /tmp/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
   sudo: yes
 
 - name: Configure docker use btrfs
-  lineinfile: 
-    dest: /etc/default/docker.io 
+  lineinfile:
+    dest: /etc/default/docker
     regexp: "#DOCKER_OPTS"
     line: "DOCKER_OPTS=\"-s btrfs -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\""
     backrefs: yes
@@ -84,7 +76,7 @@
   - restart docker
 
 - name: Ensure docker is running
-  service: 
+  service:
     name: docker
     state: running
   sudo: yes

@@ -1,0 +1,10 @@
+---
+aws_instance_count: 1
+aws_instance_type: m4.large
+aws_vol_size_gb: 100
+docker_device: /dev/xvdf
+aws_ami_id: ami-edf0bf88
+aws_key_name: sumnurv
+aws_subnet_id: subnet-8ed124d7
+aws_region: us-east-1
+aws_default_sg: sg-975902f3

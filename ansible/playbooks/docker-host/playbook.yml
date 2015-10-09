@@ -1,0 +1,41 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  sudo: no
+  roles:
+  - {
+      role: ec2-instance,
+      hostname: "{{ hostname }}",
+      purpose: docker-host,
+      aws_ami_id: "{{ aws_ami_id }}"
+   }
+  # - { role: dns-creator, ip_address: "{{ ec2_instance_private_address }}" }
+
+- hosts: to_be_provisioned
+  gather_facts: yes
+  remote_user: ubuntu
+  sudo: yes
+  roles:
+  # - infrastructure-containers
+  # - { role: newrelic-server-monitor, newrelic_instance_id: "{{ hostvars['localhost']['ec2_instance_id'] }}" }
+  # - syslog-forwards-to-logstash
+  pre_tasks:
+  - name: Set hostname
+    hostname:
+      name: "{{ hostname }}"
+
+  - name: Add hostname to /etc/hosts
+    lineinfile:
+      dest: /etc/hosts
+      insertbefore: BOF
+      line: "{{ inventory_hostname}} {{ hostname }}"
+      owner: root
+      group: root
+      mode: 0644
+    sudo: yes
+
+# - hosts: tag_Name_docker_prometheus
+#   gather_facts: yes
+#   remote_user: ubuntu
+#   roles:
+#   - prometheus-configurator

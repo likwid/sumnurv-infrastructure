@@ -7,13 +7,13 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.ssh.forward_agent = true
-  config.vm.network "forwarded_port", guest: 4352, host: 4352
+  config.vm.network "forwarded_port", guest: 2375, host: 2375
   config.vm.network "forwarded_port", guest: 8083, host: 8083
   config.vm.network "forwarded_port", guest: 8086, host: 8086
   config.vm.network "forwarded_port", guest: 8088, host: 8088
   config.vm.network "forwarded_port", guest: 8125, host: 8125
 
-  config.vm.synced_folder "../../healthagentech/wellmatch_prometheus_bridge", "/home/vagrant/wellmatch_prometheus_bridge"
+  config.vm.synced_folder "../peruse", "/home/vagrant/src/github.com/likwid/peruse"
 
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 2048

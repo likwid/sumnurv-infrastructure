@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  sudo: no
+  tasks:
+  - name: Determine eligible container hosts
+    add_host:
+      groups: upstreams
+      name: "{{ item }}"
+    with_items: groups['tag_Purpose_docker_host']
+    when: hostvars[item].ec2_tag_EligibleApps is defined and 'aisproxy' in hostvars[item].ec2_tag_EligibleApps
+
+  - name: Fail when no host available
+    fail:
+      msg: There are no eligible container hosts for ais proxy
+    when: not groups['upstreams'] is defined
+
+- hosts: upstreams
+  gather_facts: no
+  sudo: no
+  tasks:
+  - name: Install cron that deletes Rampart files in AIS Proxy containers
+    cron: name="clear /tmp dir" special_time="daily" job='docker exec -it `docker ps -q -f name=aisproxy` bash -c "rm -rf /tmp/*" '

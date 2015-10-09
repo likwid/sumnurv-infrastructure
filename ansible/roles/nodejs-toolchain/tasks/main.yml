@@ -1,31 +1,31 @@
 ---
-- name: Import the NodeSource GPG key into apt
-  apt_key: 
-    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
-    state: present
+- name: Check if {{ thing }} tar exists
+  stat:
+    path: /tmp/{{ tarball }}.tar.gz
+  register: downloaded
+
+- name: Download tarball for {{ thing }}
+  get_url:
+    url: "{{ url }}"
+    dest: /tmp/{{ tarball }}.tar.gz
+  when: not downloaded.stat.exists
+
+- name: Check hash for {{ thing }} tarball
+  stat:
+    get_checksum: yes
+    path: /tmp/{{ tarball }}.tar.gz
+  register: downloaded_checksum
+  when: checksum is defined
+
+- name: Unarchive {{ thing }}
+  unarchive:
+    copy: no
+    dest: /tmp
+    src: /tmp/{{ tarball }}.tar.gz
+  sudo: yes
+  when: checksum is defined and downloaded_checksum.stat.checksum == checksum
+
+- name: Install {{ thing }} to /usr/local
+  command: mv /tmp/{{ tarball }} /usr/local/{{ thing }}
   sudo: yes
 
-- name: Add NodeSource deb repository
-  apt_repository: 
-    repo: "deb https://deb.nodesource.com/node {{ ansible_distribution_release }} main"
-    state: present
-  sudo: yes
-
-- name: Add NodeSource deb-src repository
-  apt_repository: 
-    repo: "deb-src https://deb.nodesource.com/node {{ ansible_distribution_release }} main" 
-    state: present
-  sudo: yes
-
-- name: Add NodeSource repository preferences
-  template:
-    src: deb_nodesource_com_node.pref.j2
-    dest: /etc/apt/preferences.d/deb_nodesource_com_node.pref
-  sudo: yes
-
-- name: Install Node.js
-  apt: 
-    pkg: nodejs 
-    state: installed 
-    update_cache: yes
-  sudo: yes

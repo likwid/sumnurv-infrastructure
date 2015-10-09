@@ -1,2 +1,5 @@
 ---
-nodejs_nodesource_pin_priority: 500
+thing: node.js
+url: https://nodejs.org/dist/v4.1.1/node-v4.1.1-linux-x64.tar.gz
+tarball: node-v4.1.1-linux-x64
+checksum: 152121d237fefb28077ed8c56f9006e2a6e074d2

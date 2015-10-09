@@ -1,4 +1,4 @@
 ---
+docker_engine_version: 1.8.2
 docker_mount_point: /var/lib/docker
-disk_device: /dev/sdb
-docker_version: 1.7.0
+disk_device: /dev/xvdf

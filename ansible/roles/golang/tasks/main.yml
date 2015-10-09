@@ -1,0 +1,26 @@
+---
+- name: Check if golang tar exists
+  stat:
+    path: /tmp/{{ tarball }}
+  register: golang_downloaded
+
+- name: Download golang tarball
+  get_url:
+    url: "{{ url }}"
+    dest: /tmp/{{ tarball }}
+  when: not golang_downloaded.stat.exists
+
+- name: Check hash for golang tarball
+  stat:
+    get_checksum: yes
+    path: /tmp/{{ tarball }}
+  register: golang_checksum
+  when: checksum is defined
+
+- name: Unarchive golang
+  unarchive:
+    copy: no
+    dest: /usr/local
+    src: /tmp/{{ tarball }}
+  sudo: yes
+  when: checksum is defined and golang_checksum.stat.checksum == checksum

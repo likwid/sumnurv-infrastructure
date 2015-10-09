@@ -34,8 +34,8 @@
   command: >
     aws ec2 describe-instances --region {{ aws_region }}
     --filters Name=tag:Name,Values={{ hostname }} Name=instance-state-name,Values=running
-    --query "Reservations[].Instances[].PrivateIpAddress" --output text
-  register: query_private_ip
+    --query "Reservations[].Instances[].PublicIpAddress" --output text
+  register: query_ip
 
 - name: Create an ec2 instance
   ec2:
@@ -49,23 +49,21 @@
       Name: "{{ hostname }}"
       Type: "{{ purpose }}"
     region: "{{ aws_region }}"
-    volumes:
-    - device_name: /dev/sda1
-      volume_size: "{{ aws_root_volume_size_gb }}"
+    volumes: "{{ aws_volumes }}"
     vpc_subnet_id: "{{ current_subnet }}"
     wait: yes
-  when: query_private_ip.stdout == ''
+  when: query_ip.stdout == ''
 
 - name: Get ip address of existing or created instance
   command: >
     aws ec2 describe-instances --region {{ aws_region }}
     --filters Name=tag:Name,Values={{ hostname }} Name=instance-state-name,Values=running
-    --query "Reservations[].Instances[].PrivateIpAddress" --output text
-  register: query_private_ip
+    --query "Reservations[].Instances[].PublicIpAddress" --output text
+  register: query_ip
 
 - name: Set fact for ip address
   set_fact:
-    ec2_instance_private_address: "{{ query_private_ip.stdout }}"
+    ec2_instance_address: "{{ query_ip.stdout }}"
 
 - name: Get instance ID of existing or created instance
   command: >
@@ -80,10 +78,10 @@
 
 - name: Add instance to group for later plays
   add_host:
-    name: "{{ ec2_instance_private_address }}"
+    name: "{{ ec2_instance_address }}"
     groups: to_be_provisioned
 
 - name: Wait for ssh to respond
   wait_for:
-    host: "{{ ec2_instance_private_address }}"
+    host: "{{ ec2_instance_address }}"
     port: 22
