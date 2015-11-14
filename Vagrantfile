@@ -13,8 +13,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 8088, host: 8088
   config.vm.network "forwarded_port", guest: 8125, host: 8125
 
-  config.vm.synced_folder "../peruse", "/home/vagrant/src/github.com/likwid/peruse"
-
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 2048
     vb.cpus = 2

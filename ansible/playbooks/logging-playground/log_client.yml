@@ -1,0 +1,5 @@
+- hosts: log_client
+  gather_facts: yes
+  sudo: no
+  roles:
+  - docker

@@ -16,3 +16,33 @@
   apt:
     deb: /tmp/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
   sudo: yes
+
+- name: Ensure /etc/default/docker exists
+  file:
+    path: /etc/default/docker
+    owner: root
+    group: root
+    mode: 0644
+    state: touch
+  sudo: yes
+
+- name: Configure docker listen on tcp port
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: "#DOCKER_OPTS"
+    line: "DOCKER_OPTS=\"-H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\""
+  sudo: yes
+  notify:
+  - restart docker
+
+- name: Ensure docker is running
+  service:
+    name: docker
+    state: running
+  sudo: yes
+
+- name: Add ssh user to docker group
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: docker
+  sudo: yes

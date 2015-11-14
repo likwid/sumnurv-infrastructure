@@ -1,0 +1,7 @@
+---
+path.data: {{ elasticsearch_data_dir }}
+path.logs: {{ elasticsearch_logs_dir }}
+bootstrap.mlockall: true
+network.host: 0.0.0.0
+discovery.zen.ping.multicast.enabled: false
+indices.fielddata.cache.size:  40%

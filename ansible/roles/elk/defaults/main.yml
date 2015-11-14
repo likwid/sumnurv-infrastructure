@@ -1,0 +1,5 @@
+---
+quarter_of_memory: "{{ (ansible_memtotal_mb / 4) | int }}"
+elasticsearch_heap_size: "{{ quarter_of_memory }}m"
+elasticsearch_data_dir: /srv/elasticsearch/data
+elasticsearch_logs_dir: /srv/elasticsearch/logs

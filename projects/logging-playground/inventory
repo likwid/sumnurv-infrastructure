@@ -1,0 +1,5 @@
+[server]
+127.0.0.1 ansible_ssh_user=vagrant ansible_ssh_port=2222 ansible_ssh_private_key_file=/Users/jgonzalez/Dropbox/Code/github.com/likwid/logging-playground/.vagrant/machines/log_server/virtualbox/private_key
+
+[client]
+127.0.0.1 ansible_ssh_user=vagrant ansible_ssh_port=2200 ansible_ssh_private_key_file=/Users/jgonzalez/Dropbox/Code/github.com/likwid/logging-playground/.vagrant/machines/log_client/virtualbox/private_key

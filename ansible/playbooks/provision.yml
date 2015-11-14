@@ -2,8 +2,12 @@
 - hosts: all
   gather_facts: yes
   sudo: yes
+  pre_tasks:
   roles:
-  - golang
-  - packer.io
+  - elk
+  # - gcloud
+  # - docker
+  # - golang
+  # - packer.io
   # - { role: "deb-package", pkg_version: "0.9.3", pkg_file_name: "influxdb_{{ pkg_version }}_amd64.deb", pkg_url: "http://influxdb.s3.amazonaws.com/{{ pkg_file_name }}", pkg_hash: "525587916e76247d0eaf6791773fd2f9" }
   # - { role: "deb-package", pkg_version: "0.10.0b1", pkg_file_name: "heka_{{ pkg_version }}_amd64.deb", pkg_url: "https://github.com/mozilla-services/heka/releases/download/v{{ pkg_version }}/{{ pkg_file_name }}", pkg_hash: "4132f93e5ea5e2a2a13b78472bf6c525" }

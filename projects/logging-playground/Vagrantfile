@@ -1,0 +1,33 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  config.vm.define "log_server" do |log_server|
+    log_server.vm.box = "ubuntu/trusty64"
+    log_server.vm.network "private_network", ip: "192.168.50.10"
+    log_server.vm.network "forwarded_port", guest: 5601, host: 5601
+    log_server.vm.provider "virtualbox" do |v|
+      v.memory = 2048
+      v.cpus = 2
+      v.customize ["modifyvm", :id, "--nictype1", "virtio"]
+    end
+    log_server.vm.provision "ansible" do |ansible|
+      ansible.playbook = "../../ansible/playbooks/logging-playground/log_server.yml"
+    end
+  end
+
+  config.vm.define "log_client" do |log_client|
+    log_client.vm.box = "ubuntu/trusty64"
+    log_client.vm.network "private_network", ip: "192.168.50.20"
+    log_client.vm.provider "virtualbox" do |v|
+      v.memory = 2048
+      v.cpus = 2
+      v.customize ["modifyvm", :id, "--nictype1", "virtio"]
+    end
+    log_client.vm.provision "ansible" do |ansible|
+      ansible.playbook = "../../ansible/playbooks/logging-playground/log_client.yml"
+    end
+  end
+
+end

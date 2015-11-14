@@ -1,4 +1,8 @@
 ---
+- name: Debug
+  debug:
+    msg: "{{ elasticsearch_heap_size }}"
+
 - name: Add apt repo keys
   apt_key:
     url: "{{ item }}"
@@ -14,6 +18,7 @@
   - ppa:openjdk-r/ppa
   - deb http://packages.elasticsearch.org/elasticsearch/1.4/debian stable main
   - deb http://packages.elasticsearch.org/logstash/1.5/debian stable main
+  - deb http://packages.elasticsearch.org/curator/3/debian stable main
 
 - name: Install packages
   apt:
@@ -24,16 +29,58 @@
   - openjdk-8-jdk
   - elasticsearch
   - logstash
+  - python-elasticsearch-curator
 
-- name: Set Elasticsearch host
-  lineinfile:
+- name: Copy template for Elasticsearch
+  template:
+    src: elasticsearch.yml.j2
     dest: /etc/elasticsearch/elasticsearch.yml
-    regexp: '^network.host:'
-    insertafter: '#network.host:'
-    line: 'network.host: 127.0.0.1'
+    mode: 0644
+    owner: root
+    group: root
   sudo: yes
   notify:
   - restart elasticsearch
+
+- name: Copy elasticsearch environment variables
+  template:
+    src: elasticsearch.j2
+    dest: /etc/default/elasticsearch
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+  notify:
+  - restart elasticsearch
+
+- name: Copy elasticsearch log rotation
+  copy:
+    src: elasticsearch.rotate
+    dest: /etc/logrotate.d/elasticsearch
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Create logs cleanup cron
+  cron:
+    name: Cleanup old log indices
+    special_time: daily
+    job: /usr/local/bin/curator delete indices --older-than 30 --time-unit days --timestring '%Y.%m.%d'
+    user: "{{ ansible_ssh_user }}"
+
+- name: Ensure elasticsearch directories exist
+  file:
+    path: "{{ item }}"
+    mode: 0755
+    owner: elasticsearch
+    group: elasticsearch
+    state: directory
+    recurse: yes
+  sudo: yes
+  with_items:
+  - "{{ elasticsearch_data_dir }}"
+  - "{{ elasticsearch_logs_dir }}"
 
 - name: Enable the Elasticsearch service
   service:

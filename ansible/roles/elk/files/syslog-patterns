@@ -7,5 +7,5 @@ SYSLOG_MESSAGE (%{CONTAINER_ACCESS_LOG_MSG}|%{NGINX_ACCESS_LOG_MSG}|%{NGINX_ERRO
 UPSTREAM_ADDRESS %{IP}(?::%{NUMBER:port})?
 
 CONTAINER_ACCESS_LOG_MSG %{COMBINEDAPACHELOG}
-NGINX_ACCESS_LOG_MSG %{IPORHOST:remote_host} \(%{USER:remote_user}\) => %{IPORHOST:virtual_host} \[%{HTTPDATE:timestamp}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:response} (?:%{NUMBER:bytes}|-) %{QS:referrer} %{QS:agent} (?:%{NUMBER:request_time}|-) %{QS:http_x_forwarded_for} => %{UPSTREAM_ADDRESS:upstream_address} %{NUMBER:upstream_status} (?:%{NUMBER:upstream_response_time}|-)
+NGINX_ACCESS_LOG_MSG %{IPORHOST:remote_host} \(%{GREEDYDATA:remote_user}\) => %{IPORHOST:virtual_host} \[%{HTTPDATE:timestamp}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:response} (?:%{NUMBER:bytes}|-) %{QS:referrer} %{QS:agent} (?:%{NUMBER:request_time}|-) %{QS:http_x_forwarded_for} => %{UPSTREAM_ADDRESS:upstream_address} %{NUMBER:upstream_status} (?:%{NUMBER:upstream_response_time}|-)
 NGINX_ERROR_LOG_MSG (?<ERROR_LOG_TIMESTAMP>%{YEAR}/%{MONTHNUM}/%{MONTHDAY}%{SPACE}%{TIME}) \[%{LOGLEVEL}\] %{INT:pid}#%{INT:thread_id}:(?: \*%{INT:connection_id})? %{GREEDYDATA:errorlog_message}
