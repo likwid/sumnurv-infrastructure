@@ -1,0 +1,9 @@
+log_level = "DEBUG"
+bind_addr = "0.0.0.0"
+data_dir = "/var/nomad"
+datacenter = "us-east-1"
+region = "us"
+client {
+  enabled = true
+  servers = [{% for node in groups['tag_Role_control_plane'] %}"{{ hostvars[node]['ansible_eth0']['ipv4']['address'] }}"{% if not loop.last %},{% endif %}{% endfor %}]
+}

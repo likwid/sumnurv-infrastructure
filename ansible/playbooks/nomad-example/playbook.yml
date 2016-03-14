@@ -1,0 +1,15 @@
+---
+- hosts: tag_Role_control_plane
+  gather_facts: yes
+  roles:
+  - nomad
+  vars:
+    is_server: yes
+
+- hosts: tag_Role_data_plane
+  gather_facts: yes
+  roles:
+  - docker
+  - nomad
+  vars:
+    is_client: yes

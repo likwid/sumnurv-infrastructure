@@ -1,0 +1,17 @@
+description "Nomad"
+author "Jeff Gonzalez <likwid@gmail.com>"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 10 5
+
+limit nofile 100000 100000
+setuid nomad
+setgid nomad
+
+script
+    export HOME=/etc/nomad.d
+    exec /usr/local/bin/nomad agent -config $HOME >> /var/log/nomad.log 2>&1
+end script
