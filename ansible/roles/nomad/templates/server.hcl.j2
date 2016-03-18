@@ -9,5 +9,5 @@ advertise {
 server {
     enabled = true
     bootstrap_expect = {{ bootstrap_count }}
-    retry_join = [{% for node in groups['tag_Role_control_plane'] %}{% if not inventory_hostname == node %}"{{ hostvars[node]['ansible_eth0']['ipv4']['address'] }}:4648"{% if not loop.last %},{% endif %}{% endif %}{% endfor %}]
+    retry_join = [{% for node in groups['tag_Role_control_plane'] | difference(inventory_hostname) %}"{{ hostvars[node]['ansible_eth0']['ipv4']['address'] }}:4648"{% if not loop.last %},{% endif %}{% endfor %}]
 }

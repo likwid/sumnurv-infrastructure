@@ -1,0 +1,127 @@
+---
+- name: Gather ec2_facts
+  ec2_facts:
+
+- name: Install unzip
+  apt:
+    pkg: unzip
+    update_cache: yes
+    cache_valid_time: 300
+  sudo: yes
+
+- name: Check for Consul download
+  stat:
+    path: /tmp/{{ consul_file }}
+  register: consul_downloaded
+
+- name: Check for consul installed
+  stat:
+    path: /usr/local/bin/consul
+  register: consul_installed
+
+- name: Download Consul
+  get_url:
+    url: "{{ consul_url }}"
+    dest: /tmp
+  when: not consul_downloaded.stat.exists
+
+- name: Unpack Consul
+  unarchive:
+    copy: no
+    src: /tmp/{{ consul_file }}
+    dest: /usr/local/bin
+    creates: /usr/local/bin/consul
+  sudo: yes
+  when: not consul_installed.stat.exists
+
+- name: Ensure Consul group exists
+  group:
+    name: consul
+  sudo: yes
+
+- name: Ensure Consul user exists
+  user:
+    name: consul
+    group: consul
+    system: yes
+  sudo: yes
+
+- name: Ensure Consul is executable
+  file:
+    path: /usr/local/bin/consul
+    mode: 0755
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Ensure Consul configuration directory exists
+  file:
+    path: /etc/consul.d
+    mode: 0755
+    owner: consul
+    group: consul
+    state: directory
+  sudo: yes
+
+- name: Ensure Consul data directory exists
+  file:
+    path: /var/consul
+    mode: 0755
+    owner: consul
+    group: consul
+    state: directory
+  sudo: yes
+
+- name: Add Consul upstart file
+  template:
+    src: consul.conf.j2
+    dest: /etc/init/consul.conf
+    mode: 0644
+    owner: root
+    group: root
+  sudo: yes
+
+- name: Add Consul log file
+  file:
+    path: /var/log/consul.log
+    mode: 0744
+    owner: consul
+    group: consul
+    state: touch
+  sudo: yes
+
+- name: Add Consul server configuration file
+  template:
+    src: server.json.j2
+    dest: /etc/consul.d/server.json
+    mode: 0644
+    owner: consul
+    group: consul
+  notify:
+  - reload consul
+  sudo: yes
+  tags:
+  - config
+  when: is_server is defined and is_server
+
+- name: Add Consul client configuration file
+  template:
+    src: client.json.j2
+    dest: /etc/consul.d/client.json
+    mode: 0644
+    owner: consul
+    group: consul
+  notify:
+  - reload consul
+  sudo: yes
+  tags:
+  - config
+  when: is_client is defined and is_client
+
+- name: Enable Consul service
+  service:
+    name: consul
+    enabled: yes
+    state: started
+  sudo: yes
+

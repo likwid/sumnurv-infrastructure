@@ -120,3 +120,11 @@
     groups: docker
   sudo: yes
   when: is_client is defined and is_client
+
+- name: Enable nomad service
+  service:
+    name: nomad
+    enabled: yes
+    state: started
+  sudo: yes
+
