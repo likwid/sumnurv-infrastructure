@@ -5,6 +5,7 @@
   pre_tasks:
   roles:
   - docker
+  - tmux
   # - golang
   # - gcloud
   # - packer.io
