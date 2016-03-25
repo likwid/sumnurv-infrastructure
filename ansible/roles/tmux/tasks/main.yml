@@ -1,0 +1,11 @@
+---
+- name: Add tmux ppa repository
+  apt_repository:
+    repo: ppa:pi-rho/dev
+  sudo: yes
+
+- name: Add tmux apt package
+  apt:
+    pkg: tmux=2.0-1~ppa1~t
+    update_cache: yes
+  sudo: yes
