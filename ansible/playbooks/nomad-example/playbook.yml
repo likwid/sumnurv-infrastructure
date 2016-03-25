@@ -3,6 +3,7 @@
   gather_facts: yes
   roles:
   - nomad
+  - consul
   vars:
     is_server: yes
 
@@ -11,5 +12,6 @@
   roles:
   - docker
   - nomad
+  - consul
   vars:
     is_client: yes
