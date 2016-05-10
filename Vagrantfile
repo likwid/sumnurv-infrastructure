@@ -7,11 +7,6 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.ssh.forward_agent = true
-  config.vm.network "forwarded_port", guest: 2375, host: 2375
-  config.vm.network "forwarded_port", guest: 8083, host: 8083
-  config.vm.network "forwarded_port", guest: 8086, host: 8086
-  config.vm.network "forwarded_port", guest: 8088, host: 8088
-  config.vm.network "forwarded_port", guest: 8125, host: 8125
 
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 2048
@@ -20,8 +15,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
-  config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/playbooks/provision.yml"
+  config.vm.provision "shell", inline: "apt-get update && apt-get install -y python-pip python-dev libffi-dev libssl-dev && pip install -U pip ansible==1.9.4"
+
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "ansible/playbooks/vagrant.yml"
   end
 
 end

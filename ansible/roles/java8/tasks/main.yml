@@ -6,7 +6,6 @@
     validate_certs: no
   sudo: yes
   with_items:
-  #- ppa:jochenkemnade/openjdk-8
   - ppa:openjdk-r/ppa
 
 - name: Install java 8 and dependencies
@@ -20,6 +19,3 @@
   - build-essential
   - bzip2
   - unzip
-  - libhawtjni-runtime-java
-  - libjansi-java
-  - libjansi-native-java

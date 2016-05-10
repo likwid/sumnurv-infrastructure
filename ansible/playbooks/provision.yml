@@ -3,9 +3,14 @@
   gather_facts: yes
   sudo: yes
   pre_tasks:
+  - name: Debug
+    debug:
+      msg: This is a test
   roles:
-  - docker
-  - tmux
+#  - docker
+#  - tmux
+#  - java8
+#  - maven
   # - golang
   # - gcloud
   # - packer.io

@@ -1,7 +1,7 @@
 ---
 - name: Check for sbt download
   stat:
-    path: /tmp/sbt-0.13.8.tgz
+    path: /tmp/sbt-{{ sbt_version }}.tgz
   register: sbt_downloaded
 
 - name: Check for unarchived sbt
