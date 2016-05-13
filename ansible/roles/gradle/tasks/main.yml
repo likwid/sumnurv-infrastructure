@@ -1,0 +1,23 @@
+---
+- name: Check if gradle is downloaded
+  stat:
+    path: /tmp/gradle-{{ gradle_version }}-bin.zip
+  register: gradle_downloaded
+
+- name: Fetch gradle
+  get_url:
+    url: "{{ gradle_url }}"
+    dest: /tmp/gradle-{{ gradle_version }}-bin.zip
+  when: not gradle_downloaded.stat.exists
+
+- name: Unarchive gradle to /tmp
+  command: unzip /tmp/gradle-{{ gradle_version }}-bin.zip
+  args:
+    chdir: /tmp
+    creates: /tmp/gradle-{{ gradle_version }}
+
+- name: Move gradle to /usr/local
+  shell: cp -R /tmp/gradle-{{ gradle_version }}/* /usr/local
+  args:
+    creates: /usr/local/gradle
+  sudo: yes

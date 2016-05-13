@@ -1,0 +1,3 @@
+---
+maven_version: 3.3.9
+maven_url: http://apache.mirrors.hoobly.com/maven/maven-3/3.3.9/binaries/apache-maven-{{ maven_version }}-bin.tar.gz

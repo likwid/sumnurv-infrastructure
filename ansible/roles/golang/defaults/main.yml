@@ -1,4 +1,4 @@
 ---
-checksum: 46eecd290d8803887dec718c691cc243f2175fe0
-tarball: go1.5.1.linux-amd64.tar.gz
+checksum: e40c36ae71756198478624ed1bb4ce17597b3c19d243f3f0899bb5740d56212a
+tarball: go1.6.2.linux-amd64.tar.gz
 url: https://storage.googleapis.com/golang/{{ tarball }}

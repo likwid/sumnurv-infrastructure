@@ -1,0 +1,17 @@
+---
+- name: Check if maven is downloaded
+  stat:
+    path: /tmp/apache-maven-{{ maven_version }}-bin.tar.gz
+  register: maven_downloaded
+
+- name: Fetch maven
+  get_url:
+    url: "{{ maven_url }}"
+    dest: /tmp/apache-maven-{{ maven_version }}-bin.tar.gz
+  when: not maven_downloaded.stat.exists
+
+- name: Copy maven binaries to /usr/local
+  command: tar -xf /tmp/apache-maven-{{ maven_version }}-bin.tar.gz --strip-components=1 -C /usr/local
+  args:
+    creates: /usr/local/bin/mvn
+  sudo: yes

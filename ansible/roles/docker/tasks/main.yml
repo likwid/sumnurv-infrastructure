@@ -1,21 +1,27 @@
 ---
 - name: Add Docker repository key
   apt_key:
-    id: 58118E89F3A912897C070ADBF76221572C52609D
-    keyserver: hkp://p80.pool.sks-keyservers.net:80
+    id: 58118E89F3A912897C070ADBF76221572C52609D 
+    keyserver: hkp://p81.pool.sks-keyservers.net:80
     state: present
   sudo: yes
 
-- name: Download specific docker version
-  get_url:
-    url: http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
-    dest: /tmp/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
+- name: Add docker repository
+  apt_repository:
+    repo: deb https://apt.dockerproject.org/repo {{ dist_release }} main
+    update_cache: yes
+  become: yes
   when: ansible_distribution == 'Ubuntu'
 
-- name: Install docker-engine from deb
+- name: Install kernel updates
   apt:
-    deb: /tmp/docker-engine_{{ docker_engine_version }}-0~{{ ansible_distribution_release }}_amd64.deb
-  sudo: yes
+    name: linux-image-extra-{{ ansible_kernel }}
+  become: yes
+
+- name: Install docker
+  apt:
+    name: docker-engine
+  become: yes
 
 - name: Ensure /etc/default/docker exists
   file:
@@ -30,7 +36,7 @@
   lineinfile:
     dest: /etc/default/docker
     regexp: "#DOCKER_OPTS"
-    line: "DOCKER_OPTS=\"-H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\""
+    line: "DOCKER_OPTS=\"--bip 172.17.42.1/24 -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock\""
   sudo: yes
   notify:
   - restart docker
@@ -43,6 +49,6 @@
 
 - name: Add ssh user to docker group
   user:
-    name: "{{ ansible_ssh_user }}"
+    name: "{{ user_for_role }}"
     groups: docker
   sudo: yes

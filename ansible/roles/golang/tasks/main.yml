@@ -12,6 +12,7 @@
 
 - name: Check hash for golang tarball
   stat:
+    checksum_algorithm: sha256
     get_checksum: yes
     path: /tmp/{{ tarball }}
   register: golang_checksum
